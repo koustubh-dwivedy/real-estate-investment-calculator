@@ -1,0 +1,32 @@
+{
+  "name": "real-estate-investment-calculator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "20-Year Investment Value Calculator — Real Estate vs Equity benchmark (XIRR, opportunity-cost framing)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "oracle": "python3 reference/oracle.py"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "vitest": "^2.0.4"
+  }
+}
