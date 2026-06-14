@@ -1,0 +1,61 @@
+/**
+ * Left-column collapsible input sections (PRD §3). Plot section is shown only for
+ * PlotSelfBuild. Percent fields are edited in human % and stored as decimals.
+ */
+import type { Inputs } from "../types";
+import { SECTIONS, type FieldDef } from "./fields";
+
+interface Props {
+  inputs: Inputs;
+  onChange: (patch: Partial<Inputs>) => void;
+}
+
+function FieldInput({ field, inputs, onChange }: { field: FieldDef } & Props) {
+  const raw = inputs[field.key] as number;
+  const isPct = field.kind === "pct";
+  const display = isPct ? +(raw * 100).toFixed(6) : raw;
+  return (
+    <label className="flex flex-col gap-1 text-xs" title={field.tooltip}>
+      <span className="text-slate-600">
+        {field.label}
+        {isPct ? " (%)" : ""}
+      </span>
+      <input
+        type="number"
+        className="rounded border border-slate-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+        value={Number.isFinite(display) ? display : 0}
+        step="any"
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          const next = Number.isFinite(v) ? (isPct ? v / 100 : v) : 0;
+          onChange({ [field.key]: next } as Partial<Inputs>);
+        }}
+      />
+    </label>
+  );
+}
+
+export default function InputsPanel({ inputs, onChange }: Props) {
+  return (
+    <div className="flex flex-col gap-2">
+      {SECTIONS.map((section) => {
+        const fields = section.fields.filter(
+          (f) => !f.only || f.only.includes(inputs.acquisitionType),
+        );
+        if (fields.length === 0) return null;
+        return (
+          <details key={section.id} open={section.id === "property"} className="rounded border border-slate-200 bg-white">
+            <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-slate-800">
+              {section.title}
+            </summary>
+            <div className="grid grid-cols-2 gap-3 border-t border-slate-100 p-3">
+              {fields.map((f) => (
+                <FieldInput key={String(f.key)} field={f} inputs={inputs} onChange={onChange} />
+              ))}
+            </div>
+          </details>
+        );
+      })}
+    </div>
+  );
+}
