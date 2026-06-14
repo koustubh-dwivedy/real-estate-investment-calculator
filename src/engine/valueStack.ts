@@ -20,15 +20,25 @@ export interface LandParams {
   landRate0: number;
   landCagrY1_10: number;
   landCagrY11_20: number;
+  /** Years 21–30 land CAGR (30-year horizon). Defaults to landCagrY11_20 when omitted. */
+  landCagrY21_30?: number;
   infraBumps?: InfraBump[];
 }
 
-/** landRate(t) = landRate0 * (1+cagr1)^min(t,10) * (1+cagr2)^max(t-10,0) * Π(1+bump | year<=t). */
+/**
+ * landRate(t) = landRate0
+ *   * (1+cagr1)^min(t,10)                       // years 1–10
+ *   * (1+cagr2)^clamp(t-10, 0, 10)              // years 11–20
+ *   * (1+cagr3)^max(t-20, 0)                    // years 21–30 (cagr3 defaults to cagr2)
+ *   * Π(1+bump | year<=t).
+ */
 export function landRate(p: LandParams, t: number): number {
+  const cagr3 = p.landCagrY21_30 ?? p.landCagrY11_20;
   let rate =
     p.landRate0 *
     Math.pow(1 + p.landCagrY1_10, Math.min(t, 10)) *
-    Math.pow(1 + p.landCagrY11_20, Math.max(t - 10, 0));
+    Math.pow(1 + p.landCagrY11_20, Math.min(Math.max(t - 10, 0), 10)) *
+    Math.pow(1 + cagr3, Math.max(t - 20, 0));
   for (const bump of p.infraBumps ?? []) {
     if (bump.year <= t) rate *= 1 + bump.pct;
   }

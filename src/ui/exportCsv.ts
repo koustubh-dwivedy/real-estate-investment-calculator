@@ -88,7 +88,7 @@ const SCENARIO_KEYS: (keyof Inputs)[] = [
 ];
 
 const RESULT_ROWS: { key: keyof Outputs; label: string; pct?: boolean }[] = [
-  { key: "reTerminal", label: "RE terminal (20y, nominal)" },
+  { key: "reTerminal", label: "RE terminal (nominal)" },
   { key: "eqTerminal", label: "Equity terminal (same cash)" },
   { key: "gap", label: "Gap (RE − Equity)" },
   { key: "reXirr", label: "RE XIRR", pct: true },
@@ -108,8 +108,9 @@ export function buildFullCsv(inputs: Inputs, out: Outputs): string {
   const blank = () => lines.push("");
 
   // 1 — metadata + method
-  lines.push("# 20-Year Investment Value Calculator — full export");
+  lines.push("# Investment Value Calculator — full export");
   lines.push(`# Generated,${new Date().toISOString()}`);
+  lines.push(`# Horizon (years),${inputs.holdYears}`);
   lines.push("# Method,Two-engine opportunity cost: real estate (Engine A) vs same-cash equity SIP (Engine B); compared via XIRR on dated cash flows.");
   lines.push(`# Repo,${REPO}`);
   lines.push("# Reproduce,Paste the INPUTS_JSON row below into compute(); cross-check reference/oracle.py. Percents stored as decimals; money nominal.");

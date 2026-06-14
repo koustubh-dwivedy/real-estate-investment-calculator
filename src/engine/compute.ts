@@ -86,6 +86,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     y1_5: input.rentGrowthY1_5,
     y6_10: input.rentGrowthY6_10,
     y11_20: input.rentGrowthY11_20,
+    y21_30: input.rentGrowthY21_30,
     cohortDrag: input.cohortDragPct,
   }, N);
 
@@ -97,6 +98,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
       landRate0: input.landRate0,
       landCagrY1_10: landCagr1,
       landCagrY11_20: landCagr2,
+      landCagrY21_30: opts.landCagrOverride ?? input.landCagrY21_30,
       infraBumps: input.infraBumps,
     },
     structure: {

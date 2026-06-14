@@ -123,6 +123,7 @@ function baseIndia(): Inputs {
     rentGrowthY1_5: 0.06,
     rentGrowthY6_10: 0.05,
     rentGrowthY11_20: 0.05,
+    rentGrowthY21_30: 0.05, // defaults to Y11–20 (extrapolate); taper for 30y holds
     cohortDragPct: 0.02,
     vacancyPct: 0.05,
     reLetBrokerageMonths: 1,
@@ -138,6 +139,7 @@ function baseIndia(): Inputs {
     landRate0: 38_000,
     landCagrY1_10: 0.08,
     landCagrY11_20: 0.06,
+    landCagrY21_30: 0.06, // defaults to Y11–20 (extrapolate); taper for 30y holds
     replacementCost0: 2300,
     constructionInflationPct: 0.06,
     physicalDepRatePct: 0.0167,
@@ -239,9 +241,11 @@ export function getDefaults(key: DefaultsKey): Inputs {
   d.stampDutyRegPct = geo.stampDutyRegPct;
   d.landCagrY1_10 = geo.landCagrY1_10;
   d.landCagrY11_20 = geo.landCagrY11_20;
+  d.landCagrY21_30 = geo.landCagrY11_20; // extrapolate Y11–20 by default
   d.rentGrowthY1_5 = geo.rentGrowthY1_5;
   d.rentGrowthY6_10 = geo.rentGrowthY6_10;
   d.rentGrowthY11_20 = geo.rentGrowthY11_20;
+  d.rentGrowthY21_30 = geo.rentGrowthY11_20; // extrapolate Y11–20 by default
   d.landRate0 = isPlot ? geo.landRate0Plot : geo.landRate0Apartment;
   d.replacementCost0 = isPlot ? geo.replacementCost0SelfBuild : geo.replacementCost0Apartment;
 

@@ -41,7 +41,9 @@ export default function InputsPanel({ inputs, onChange }: Props) {
     <div className="flex flex-col gap-2">
       {SECTIONS.map((section) => {
         const fields = section.fields.filter(
-          (f) => !f.only || f.only.includes(inputs.acquisitionType),
+          (f) =>
+            (!f.only || f.only.includes(inputs.acquisitionType)) &&
+            (!f.minHorizon || inputs.holdYears >= f.minHorizon),
         );
         if (fields.length === 0) return null;
         return (

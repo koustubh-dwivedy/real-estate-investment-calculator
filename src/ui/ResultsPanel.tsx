@@ -49,7 +49,7 @@ export default function ResultsPanel({ inputs, out }: Props) {
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <div className="text-xs text-blue-700">Real-estate terminal (20y)</div>
+          <div className="text-xs text-blue-700">Real-estate terminal ({inputs.holdYears}y)</div>
           <div className="text-2xl font-bold text-blue-900">{formatMoney(out.reTerminal, geo)}</div>
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
@@ -70,7 +70,7 @@ export default function ResultsPanel({ inputs, out }: Props) {
           <div className="rounded border border-slate-200 bg-white p-2 text-[11px] text-slate-500">
             <b className="text-slate-600">Rental cash · {inputs.rentalCashUse}:</b>{" "}
             {posYears === 0 ? (
-              <>rent never exceeds EMI + costs (negative carry all 20 yrs), so there is no surplus to route — the rental-cash switch has no effect here. Lower the loan or raise rent to see it bite.</>
+              <>rent never exceeds EMI + costs (negative carry all {out.rows.length - 1} yrs), so there is no surplus to route — the rental-cash switch has no effect here. Lower the loan or raise rent to see it bite.</>
             ) : (
               <>{posYears} year(s) of surplus rent; sleeve value at exit {formatMoney(finalPot, geo)}.</>
             )}

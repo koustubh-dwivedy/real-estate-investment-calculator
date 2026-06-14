@@ -46,6 +46,8 @@ export interface Inputs {
   rentGrowthY1_5: number;
   rentGrowthY6_10: number;
   rentGrowthY11_20: number;
+  /** Years 21–30 rent growth (30-year horizon); defaults to rentGrowthY11_20. */
+  rentGrowthY21_30: number;
   cohortDragPct: number;
   vacancyPct: number;
   reLetBrokerageMonths: number;
@@ -63,6 +65,8 @@ export interface Inputs {
   landRate0: number;
   landCagrY1_10: number;
   landCagrY11_20: number;
+  /** Years 21–30 land CAGR (30-year horizon); defaults to landCagrY11_20. */
+  landCagrY21_30: number;
   replacementCost0: number;
   constructionInflationPct: number;
   physicalDepRatePct: number;

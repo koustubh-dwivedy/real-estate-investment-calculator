@@ -30,3 +30,7 @@ coverage/
 __pycache__/
 *.pyc
 .venv/
+
+# Exported CSV artifacts from the app (downloads, not source)
+sample-schedule/
+investment-calculator_*.csv

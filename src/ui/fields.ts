@@ -16,6 +16,8 @@ export interface FieldDef {
   def: string;
   /** If set, only show for these acquisition types. */
   only?: AcquisitionType[];
+  /** If set, only show when holdYears >= this (e.g. Y21–30 bands need a 30y horizon). */
+  minHorizon?: number;
 }
 
 export interface Section {
@@ -46,6 +48,7 @@ export const SECTIONS: Section[] = [
       { key: "rentGrowthY1_5", label: "Rent growth Y1–5", kind: "pct", unit: "% p.a.", def: "Annual market rent growth in years 1–5." },
       { key: "rentGrowthY6_10", label: "Rent growth Y6–10", kind: "pct", unit: "% p.a.", def: "Annual market rent growth in years 6–10." },
       { key: "rentGrowthY11_20", label: "Rent growth Y11–20", kind: "pct", unit: "% p.a.", def: "Annual market rent growth in years 11–20." },
+      { key: "rentGrowthY21_30", label: "Rent growth Y21–30", kind: "pct", unit: "% p.a.", def: "Annual market rent growth in years 21–30. Defaults to the Y11–20 rate; lower it to taper later-decade growth.", minHorizon: 21 },
       { key: "cohortDragPct", label: "Cohort drag", kind: "pct", unit: "% p.a.", def: "Rent growth lost as the building ages relative to newer stock, phased in after year 10." },
       { key: "vacancyPct", label: "Vacancy", kind: "pct", unit: "% of rent", def: "Share of annual rent lost to vacant months." },
       { key: "reLetBrokerageMonths", label: "Re-let brokerage", kind: "number", unit: "months", def: "Months of rent paid as brokerage on each re-let; annualized over a ~3-year tenancy." },
@@ -69,6 +72,7 @@ export const SECTIONS: Section[] = [
       { key: "landRate0", label: "Land rate (t0)", kind: "money", unit: "₹ / sq ft", def: "Current market land rate per sq ft, applied to UDS. The appreciating part of the asset." },
       { key: "landCagrY1_10", label: "Land CAGR Y1–10", kind: "pct", unit: "% p.a.", def: "Annual land-value growth, years 1–10." },
       { key: "landCagrY11_20", label: "Land CAGR Y11–20", kind: "pct", unit: "% p.a.", def: "Annual land-value growth, years 11–20 (usually lower as the micro-market matures)." },
+      { key: "landCagrY21_30", label: "Land CAGR Y21–30", kind: "pct", unit: "% p.a.", def: "Annual land-value growth, years 21–30. Defaults to the Y11–20 rate; lower it to taper later-decade appreciation.", minHorizon: 21 },
       { key: "replacementCost0", label: "Replacement cost (t0)", kind: "money", unit: "₹ / sq ft", def: "Cost to rebuild the structure today, per sq ft. Inflates over time but the structure itself depreciates." },
       { key: "constructionInflationPct", label: "Construction inflation", kind: "pct", unit: "% p.a.", def: "Annual growth in rebuild cost (materials + labour)." },
       { key: "physicalDepRatePct", label: "Physical depreciation", kind: "pct", unit: "% p.a.", def: "Straight-line wear of the structure (≈1.67%/yr for a 60-yr RCC life)." },

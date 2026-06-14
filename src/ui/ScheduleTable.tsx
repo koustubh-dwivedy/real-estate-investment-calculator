@@ -51,7 +51,7 @@ export default function ScheduleTable({ inputs, out }: Props) {
   return (
     <div className="rounded border border-slate-200 bg-white">
       <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <div className="text-sm font-medium text-slate-800">Schedule (annual, t=0…20)</div>
+        <div className="text-sm font-medium text-slate-800">Schedule (annual, t=0…{inputs.holdYears})</div>
         <button
           className="rounded bg-slate-800 px-3 py-1 text-xs text-white hover:bg-slate-700"
           title="Full CSV: metadata, all assumptions (units + definitions), headline results, every schedule column, and a machine-readable inputs JSON to reproduce exactly."
