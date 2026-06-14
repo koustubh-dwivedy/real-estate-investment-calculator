@@ -37,7 +37,7 @@ do **not** use the "sum of nominal outflows = cost" fallacy.
 - **PRD:** [`docs/Investment_Calculator_PRD_v3.md`](docs/Investment_Calculator_PRD_v3.md)
   (working copy; the engine is built against this).
 - **Original PRD:** `docs/Investment_Calculator_PRD_v3.original.md` (as-written).
-- **Specs / tracking:** Linear project — _link added after project creation_.
+- **Specs / tracking:** [Linear project — 20-Year Investment Value Calculator (RE vs Equity)](https://linear.app/hughes-ai/project/20-year-investment-value-calculator-re-vs-equity-ab0c8216d148).
 
 ## Stack
 
