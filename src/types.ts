@@ -51,6 +51,8 @@ export interface Inputs {
   cohortDragPct: number;
   vacancyPct: number;
   reLetBrokerageMonths: number;
+  /** Lease renewal cadence in months (11 common in India, or 12). See rent.ts. */
+  rentAgreementMonths: number;
   usageMode: UsageMode;
   imputedRentBenefit: boolean;
 

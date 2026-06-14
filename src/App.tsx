@@ -110,6 +110,7 @@ export default function App() {
             <Select label="Compare mode" value={inputs.compareMode} options={["SameCashSIP", "LumpsumOnly"] as CompareMode[]} onChange={(v) => patch({ compareMode: v })} def="Whether equity also invests each EMI as a monthly SIP." />
             <Select label="Usage" value={inputs.usageMode} options={["LetOut", "SelfOccupied"]} onChange={(v) => patch({ usageMode: v })} def="Let out (earns rent) vs self-occupied (carrying cost only)." />
             <Select label="Hold horizon" value={String(inputs.holdYears)} options={["20", "30"]} onChange={(v) => patch({ holdYears: Number(v) })} def="Projection length. 30 reveals Y21–30 growth inputs in sections B & D." />
+            <Select label="Rent renewal" value={String(inputs.rentAgreementMonths)} options={["11", "12"]} onChange={(v) => patch({ rentAgreementMonths: Number(v) })} def="Lease renewal cadence (months). 11 (typical in India) compounds rent escalation ~9% faster over 20y; occupancy unchanged." />
           </div>
         </div>
       </div>

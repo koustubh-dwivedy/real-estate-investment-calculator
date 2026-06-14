@@ -35,6 +35,7 @@ const NON_FIELD_LABELS: Record<string, { label: string; def: string }> = {
   acquisitionType: { label: "Acquisition type", def: "Ready / under-construction flat, or plot self-build." },
   assetType: { label: "Asset type", def: "Drives UDS, depreciation, premium, maintenance treatment." },
   usageMode: { label: "Usage mode", def: "LetOut (earns rent) or SelfOccupied (carrying cost only)." },
+  rentAgreementMonths: { label: "Rent agreement (renewal cadence, months)", def: "Lease renewal cadence: escalation compounds 12/value times per year. 11 (India-typical) grows rent ~9% faster over 20y than 12; occupancy unchanged." },
   imputedRentBenefit: { label: "Imputed rent benefit", def: "Credit saved rent for self-occupied (default off)." },
   rentalCashUse: { label: "Rental cash use", def: "Where surplus rent goes: ReinvestEquity / PrepayLoan / Pocket." },
   taxRegime: { label: "Tax regime", def: "India_Old allows let-out loss set-off; India_New strands it." },
