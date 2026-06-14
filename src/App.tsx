@@ -35,15 +35,17 @@ function Select<T extends string>({
   value,
   options,
   onChange,
+  def,
 }: {
   label: string;
   value: T;
   options: readonly T[];
   onChange: (v: T) => void;
+  def?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs">
-      <span className="text-slate-500">{label}</span>
+    <label className="flex w-44 flex-col gap-0.5 text-xs">
+      <span className="font-medium text-slate-600">{label}</span>
       <select
         className="rounded border border-slate-300 px-2 py-1 text-sm"
         value={value}
@@ -55,6 +57,7 @@ function Select<T extends string>({
           </option>
         ))}
       </select>
+      {def ? <span className="text-[10px] leading-snug text-slate-400">{def}</span> : null}
     </label>
   );
 }
@@ -87,15 +90,27 @@ export default function App() {
         </p>
       </header>
 
-      <div className="flex flex-wrap items-end gap-3 border-b border-slate-200 bg-white px-6 py-3">
-        <Select label="Geography" value={inputs.geography} options={GEOS} onChange={(v) => reload({ geography: v })} />
-        <Select label="Acquisition type" value={inputs.acquisitionType} options={ACQ} onChange={(v) => reload({ acquisitionType: v })} />
-        <Select label="Asset type" value={inputs.assetType} options={ASSETS} onChange={(v) => reload({ assetType: v })} />
-        <div className="mx-2 h-8 w-px bg-slate-200" />
-        <Select label="Rental cash" value={inputs.rentalCashUse} options={["ReinvestEquity", "PrepayLoan", "Pocket"] as RentalCashUse[]} onChange={(v) => patch({ rentalCashUse: v })} />
-        <Select label="Tax regime" value={inputs.taxRegime} options={["India_New", "India_Old"] as TaxRegime[]} onChange={(v) => patch({ taxRegime: v })} />
-        <Select label="Compare mode" value={inputs.compareMode} options={["SameCashSIP", "LumpsumOnly"] as CompareMode[]} onChange={(v) => patch({ compareMode: v })} />
-        <Select label="Usage" value={inputs.usageMode} options={["LetOut", "SelfOccupied"]} onChange={(v) => patch({ usageMode: v })} />
+      <div className="border-b border-slate-200 bg-white px-6 py-3">
+        <div className="mb-2 rounded bg-slate-50 px-3 py-2 text-[11px] leading-snug text-slate-500">
+          <b className="text-slate-600">Presets</b> load the validated 2026 defaults for a scenario and <b>reset your edits</b> — pick these first.
+          <b className="text-slate-600"> Global switches</b> are strategy/regime choices that persist.
+          The <b className="text-slate-600">left panel</b> then lets you override any individual number; every change recomputes live. The two engines compare the same out-of-pocket cash: property vs an equity SIP.
+        </div>
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="flex flex-wrap items-start gap-3 rounded border border-slate-200 p-2">
+            <div className="w-full text-[10px] font-semibold uppercase tracking-wide text-slate-400">Presets · reload defaults</div>
+            <Select label="Geography" value={inputs.geography} options={GEOS} onChange={(v) => reload({ geography: v })} def="City/market — sets land rate, stamp duty, growth." />
+            <Select label="Acquisition type" value={inputs.acquisitionType} options={ACQ} onChange={(v) => reload({ acquisitionType: v })} def="Ready / under-construction flat, or a plot you build on." />
+            <Select label="Asset type" value={inputs.assetType} options={ASSETS} onChange={(v) => reload({ assetType: v })} def="Drives UDS, depreciation, premium, maintenance treatment." />
+          </div>
+          <div className="flex flex-wrap items-start gap-3 rounded border border-slate-200 p-2">
+            <div className="w-full text-[10px] font-semibold uppercase tracking-wide text-slate-400">Global switches · persist</div>
+            <Select label="Rental cash" value={inputs.rentalCashUse} options={["ReinvestEquity", "PrepayLoan", "Pocket"] as RentalCashUse[]} onChange={(v) => patch({ rentalCashUse: v })} def="Where surplus rent goes. No effect if rent never exceeds EMI+costs." />
+            <Select label="Tax regime" value={inputs.taxRegime} options={["India_New", "India_Old"] as TaxRegime[]} onChange={(v) => patch({ taxRegime: v })} def="Old allows let-out loss set-off; New strands it." />
+            <Select label="Compare mode" value={inputs.compareMode} options={["SameCashSIP", "LumpsumOnly"] as CompareMode[]} onChange={(v) => patch({ compareMode: v })} def="Whether equity also invests each EMI as a monthly SIP." />
+            <Select label="Usage" value={inputs.usageMode} options={["LetOut", "SelfOccupied"]} onChange={(v) => patch({ usageMode: v })} def="Let out (earns rent) vs self-occupied (carrying cost only)." />
+          </div>
+        </div>
       </div>
 
       <main className="grid grid-cols-1 gap-4 p-6 lg:grid-cols-[minmax(320px,380px)_1fr]">

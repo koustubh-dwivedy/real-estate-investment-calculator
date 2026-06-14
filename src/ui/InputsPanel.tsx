@@ -15,10 +15,10 @@ function FieldInput({ field, inputs, onChange }: { field: FieldDef } & Props) {
   const isPct = field.kind === "pct";
   const display = isPct ? +(raw * 100).toFixed(6) : raw;
   return (
-    <label className="flex flex-col gap-1 text-xs" title={field.tooltip}>
-      <span className="text-slate-600">
-        {field.label}
-        {isPct ? " (%)" : ""}
+    <label className="flex flex-col gap-0.5 text-xs">
+      <span className="flex items-baseline justify-between gap-1">
+        <span className="font-medium text-slate-700">{field.label}</span>
+        <span className="shrink-0 text-[10px] text-slate-400">{field.unit}</span>
       </span>
       <input
         type="number"
@@ -31,6 +31,7 @@ function FieldInput({ field, inputs, onChange }: { field: FieldDef } & Props) {
           onChange({ [field.key]: next } as Partial<Inputs>);
         }}
       />
+      <span className="text-[10px] leading-snug text-slate-400">{field.def}</span>
     </label>
   );
 }

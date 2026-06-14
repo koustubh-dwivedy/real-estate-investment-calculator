@@ -63,6 +63,21 @@ export default function ResultsPanel({ inputs, out }: Props) {
         <div className="text-xl font-bold text-slate-900">{formatMoney(out.gap, geo)}</div>
       </div>
 
+      {(() => {
+        const posYears = out.rows.filter((r) => r.postTaxRentalCF > 0).length;
+        const finalPot = out.rows[out.rows.length - 1]?.reinvestPot ?? 0;
+        return (
+          <div className="rounded border border-slate-200 bg-white p-2 text-[11px] text-slate-500">
+            <b className="text-slate-600">Rental cash · {inputs.rentalCashUse}:</b>{" "}
+            {posYears === 0 ? (
+              <>rent never exceeds EMI + costs (negative carry all 20 yrs), so there is no surplus to route — the rental-cash switch has no effect here. Lower the loan or raise rent to see it bite.</>
+            ) : (
+              <>{posYears} year(s) of surplus rent; sleeve value at exit {formatMoney(finalPot, geo)}.</>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="grid grid-cols-3 gap-3">
         <Metric label="RE XIRR" value={formatPct(out.reXirr)} />
         <Metric label="Equity XIRR" value={formatPct(out.eqXirr)} />
