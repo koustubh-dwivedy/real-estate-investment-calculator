@@ -82,8 +82,8 @@ export default function App() {
   const out = useMemo(() => compute(inputs), [inputs]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 lg:h-screen lg:overflow-hidden">
-      <header className="shrink-0 border-b border-slate-200 bg-white px-6 py-3">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <header className="border-b border-slate-200 bg-white px-6 py-3">
         <h1 className="text-lg font-semibold">20-Year Investment Value Calculator</h1>
         <p className="text-xs text-slate-500">
           Real estate vs same-cash equity benchmark · opportunity-cost (XIRR) framing
@@ -113,13 +113,13 @@ export default function App() {
         </div>
       </div>
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-6 lg:grid-cols-[minmax(320px,380px)_1fr] lg:overflow-hidden">
-        {/* Left inputs — scrolls independently of the results on desktop. */}
-        <section className="min-h-0 lg:overflow-y-auto lg:pr-1">
+      <main className="grid grid-cols-1 items-start gap-5 p-5 lg:grid-cols-[minmax(300px,340px)_1fr]">
+        {/* Left inputs — sticky sidebar that scrolls within its own height. */}
+        <section className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
           <InputsPanel inputs={inputs} onChange={patch} />
         </section>
-        {/* Right results — its own scroll. */}
-        <section className="flex min-h-0 min-w-0 flex-col gap-4 lg:overflow-y-auto lg:pr-1">
+        {/* Right results — flows with the page for full room. */}
+        <section className="flex min-w-0 flex-col gap-5">
           <ResultsPanel inputs={inputs} out={out} />
           <Insights inputs={inputs} out={out} />
           <ScheduleTable inputs={inputs} out={out} />
