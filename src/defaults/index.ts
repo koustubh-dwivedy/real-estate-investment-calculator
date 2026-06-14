@@ -127,6 +127,7 @@ function baseIndia(): Inputs {
     cohortDragPct: 0.02,
     vacancyPct: 0.05,
     reLetBrokerageMonths: 1,
+    rentAgreementMonths: 12, // 12 = plain annual escalation; 11 compounds faster
     usageMode: "LetOut",
     imputedRentBenefit: false,
 

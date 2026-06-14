@@ -88,6 +88,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     y11_20: input.rentGrowthY11_20,
     y21_30: input.rentGrowthY21_30,
     cohortDrag: input.cohortDragPct,
+    renewalMonths: input.rentAgreementMonths,
   }, N);
 
   // ---------------------------------------------------------------- §4.5 value stack

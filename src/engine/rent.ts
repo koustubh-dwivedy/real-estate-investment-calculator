@@ -16,6 +16,13 @@ export interface RentGrowth {
   y21_30?: number;
   /** Cohort drag (p.a.) subtracted from market growth after year 10. */
   cohortDrag: number;
+  /**
+   * Lease renewal cadence in months (India: 11-month agreements are common). The
+   * per-renewal escalation compounds 12/renewalMonths times per calendar year, so
+   * the effective annual growth is (1+g_real)^(12/renewalMonths). Defaults to 12
+   * (→ exponent 1, identical to a plain annual escalation). Occupancy is unchanged.
+   */
+  renewalMonths?: number;
 }
 
 /** g_market(t): phased market growth by hold-year t (1-based). */
@@ -36,18 +43,21 @@ export function drag(t: number, cohortDrag: number): number {
  * Annual rent path indexed by hold-year. Returns an array of length `years + 1`,
  * where index 0 = rent_annual(0) = rentPerMonth0 * 12, and index t = rent_annual(t).
  *
- *   rent_annual(t) = rent_annual(t-1) * (1 + g_market(t) - drag(t))
+ *   rent_annual(t) = rent_annual(t-1) * (1 + g_real(t))^(12 / renewalMonths)
+ *
+ * where g_real(t) = gMarket(t) − drag(t). renewalMonths defaults to 12 (exponent 1).
  */
 export function rentPath(
   rentPerMonth0: number,
   g: RentGrowth,
   years = 20,
 ): number[] {
+  const renewalExp = 12 / (g.renewalMonths ?? 12);
   const out = new Array<number>(years + 1);
   out[0] = rentPerMonth0 * 12;
   for (let t = 1; t <= years; t++) {
     const gReal = gMarket(t, g) - drag(t, g.cohortDrag);
-    out[t] = out[t - 1]! * (1 + gReal);
+    out[t] = out[t - 1]! * Math.pow(1 + gReal, renewalExp);
   }
   return out;
 }

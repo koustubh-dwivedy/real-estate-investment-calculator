@@ -64,13 +64,20 @@ def drag(t: int, cohort_drag: float) -> float:
 
 
 def rent_path(rent_per_month_0: float, g1_5: float, g6_10: float, g11_20: float,
-              cohort_drag: float, years: int = 20, g21_30: float | None = None) -> list[float]:
-    """rent_annual(0) = rentPerMonth0*12 ; rent_annual(t)=rent_annual(t-1)*(1+g_real(t))."""
+              cohort_drag: float, years: int = 20, g21_30: float | None = None,
+              renewal_months: int = 12) -> list[float]:
+    """
+    rent_annual(0) = rentPerMonth0*12.
+    rent_annual(t) = rent_annual(t-1) * (1 + g_real(t))^(12/renewal_months).
+    renewal_months=12 → exponent 1 (plain annual escalation). India 11-month leases
+    renew faster, so escalation compounds 12/11 times per year.
+    """
+    renewal_exp = 12.0 / renewal_months
     rent = rent_per_month_0 * 12.0
     out = [rent]  # index 0 == rent_annual(0)
     for t in range(1, years + 1):
         g_real = g_market(t, g1_5, g6_10, g11_20, g21_30) - drag(t, cohort_drag)
-        rent = rent * (1 + g_real)
+        rent = rent * (1 + g_real) ** renewal_exp
         out.append(rent)
     return out
 
@@ -240,6 +247,15 @@ def main() -> None:
     print(f"T16 landRate(30)                    = {lr30:,.4f}")
     print(f"T16 landValue(30)                   = {lv30:,.4f}")
     print(f"     1.02^5 = {1.02**5:.8f} ; 1.02^10 = {1.02**10:.8f} ; 1.05^10 = {1.05**10:.8f}")
+
+    # ---- T17: 11-month rent renewal cadence (escalation compounds 12/11/yr) ----
+    #   Same T3 scenario (rent0 30,000/mo; 7/6/5; drag 2%) but renewal_months=11.
+    #   At renewal_months=12 these reduce EXACTLY to T3.
+    rp11 = rent_path(30_000, 0.07, 0.06, 0.05, 0.02, years=20, renewal_months=11)
+    print(f"T17 rent_annual(5)  @11mo            = {rp11[5]:,.4f}  [T3 @12mo: 504,918.62]")
+    print(f"T17 rent_annual(10) @11mo            = {rp11[10]:,.4f}  [T3 @12mo: 675,695.02]")
+    print(f"T17 rent_annual(20) @11mo            = {rp11[20]:,.4f}  [T3 @12mo: 943,824.75]")
+    print(f"     renewal exponent 12/11 = {12/11:.8f}")
     print(line)
 
 
