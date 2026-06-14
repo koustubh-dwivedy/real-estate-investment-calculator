@@ -3,7 +3,7 @@
  * three switches. Left: input sections. Right: results + charts. Below: schedule
  * table and sensitivity/warnings. All numbers flow from the single compute().
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type {
   Inputs,
   Geography,
@@ -15,6 +15,7 @@ import type {
 } from "./types";
 import { getDefaults } from "./defaults";
 import { compute } from "./engine/compute";
+import { parseInputsFromCsv } from "./ui/importCsv";
 import InputsPanel from "./ui/InputsPanel";
 import ResultsPanel from "./ui/ResultsPanel";
 import ScheduleTable from "./ui/ScheduleTable";
@@ -81,13 +82,56 @@ export default function App() {
 
   const out = useMemo(() => compute(inputs), [inputs]);
 
+  // --- import a previously exported full CSV (restores the exact scenario) ---
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return;
+    const text = await file.text();
+    const res = parseInputsFromCsv(text);
+    if ("inputs" in res) {
+      setInputs(res.inputs);
+      setImportMsg({ ok: true, text: `Loaded scenario from ${file.name}` });
+    } else {
+      setImportMsg({ ok: false, text: res.error });
+    }
+    window.setTimeout(() => setImportMsg(null), 6000);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white px-6 py-3">
-        <h1 className="text-lg font-semibold">{inputs.holdYears}-Year Investment Value Calculator</h1>
-        <p className="text-xs text-slate-500">
-          Real estate vs same-cash equity benchmark · opportunity-cost (XIRR) framing
-        </p>
+      <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-3">
+        <div>
+          <h1 className="text-lg font-semibold">{inputs.holdYears}-Year Investment Value Calculator</h1>
+          <p className="text-xs text-slate-500">
+            Real estate vs same-cash equity benchmark · opportunity-cost (XIRR) framing
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              void handleImportFile(e.target.files?.[0]);
+              e.target.value = ""; // allow re-selecting the same file
+            }}
+          />
+          <button
+            className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            title="Load a scenario from a previously exported full CSV (restores its inputs)."
+            onClick={() => fileRef.current?.click()}
+          >
+            ⤴ Import CSV
+          </button>
+          {importMsg ? (
+            <span className={`text-[11px] ${importMsg.ok ? "text-emerald-600" : "text-rose-600"}`}>
+              {importMsg.text}
+            </span>
+          ) : null}
+        </div>
       </header>
 
       <div className="shrink-0 border-b border-slate-200 bg-white px-6 py-3">

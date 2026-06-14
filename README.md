@@ -45,6 +45,11 @@ Vite + React + TypeScript, Tailwind, Recharts. Pure formula modules in `src/engi
 unit-tested with Vitest. No backend, no persistence (CSV export of the schedule is
 allowed).
 
+**Save & restore scenarios:** "Export full CSV" embeds a machine-readable
+`## INPUTS_JSON` block; the **Import CSV** button (top-right) restores the exact
+scenario from a previously exported file so you can keep tweaking it. Older exports
+load too — any newer fields are filled from current defaults.
+
 ```
 src/engine/      pure formula modules — single source of truth (PRD §4)
 src/defaults/    validated 2026 defaults (PRD §5)
