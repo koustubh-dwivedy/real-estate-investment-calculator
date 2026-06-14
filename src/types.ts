@@ -1,13 +1,15 @@
 /**
- * Core domain types for the calculator.
+ * Core domain types (PRD §3, §5).
  *
- * These are intentionally minimal stubs for the scaffold. They are fleshed out in
- * issue "Domain types + validated defaults loader" (PRD §3, §5). Keeping them here
- * anchors the module layout so engine modules can import from one place.
- *
- * Conventions (PRD §0): all money in NOMINAL terms unless a field is labelled `real`.
- * Rates are decimals (7.5% => 0.075). `t` = year 1..20; `m` = month 1..240.
+ * Conventions (PRD §0): all money NOMINAL unless a field is labelled `real`.
+ * Rates are decimals (7.5% => 0.075). `t` = hold-year 1..20; `m` = month.
  */
+
+import type { InfraBump } from "./engine/valueStack";
+import type { MaintenanceMode, UsageMode, TaxRegime } from "./engine/opexTax";
+import type { RentalCashUse } from "./engine/reinvest";
+
+export type { MaintenanceMode, UsageMode, TaxRegime, RentalCashUse, InfraBump };
 
 export type Geography = "Bangalore" | "Mumbai" | "NewYork" | "SanFrancisco";
 
@@ -23,23 +25,159 @@ export type AssetType =
   | "MidRiseSociety"
   | "HighRiseSociety";
 
-/** Full input set — defined in detail in the domain-types issue. */
+export type SurchargeCess = "none" | "31.2" | "35.8";
+export type CompareMode = "SameCashSIP" | "LumpsumOnly";
+export type ConstructionFinancing = "CompositeLoan" | "OwnFunds";
+
 export interface Inputs {
+  // ---- A. Property, area & acquisition type ----
   geography: Geography;
   acquisitionType: AcquisitionType;
   assetType: AssetType;
-  // ...all §3 fields added in the domain-types issue.
-  [key: string]: unknown;
+  sbua: number;
+  carpetArea: number;
+  udsSqft: number;
+  ageAtPurchaseYears: number;
+  /** Apartment acquisition price (ex stamp/reg/GST). For PlotSelfBuild = plot price only. */
+  purchasePriceAllIn: number;
+
+  // ---- B. Rent & rent growth ----
+  rentPerMonth0: number;
+  rentGrowthY1_5: number;
+  rentGrowthY6_10: number;
+  rentGrowthY11_20: number;
+  cohortDragPct: number;
+  vacancyPct: number;
+  reLetBrokerageMonths: number;
+  usageMode: UsageMode;
+  imputedRentBenefit: boolean;
+
+  // ---- C. Entry costs (t=0) ----
+  stampDutyRegPct: number;
+  gstPct: number;
+  brokerageBuyPct: number;
+  otherAcquisitionCostsAbs: number;
+  interiorsCapex0: number;
+
+  // ---- D. Appreciation engine ----
+  landRate0: number;
+  landCagrY1_10: number;
+  landCagrY11_20: number;
+  replacementCost0: number;
+  constructionInflationPct: number;
+  physicalDepRatePct: number;
+  economicDepRatePct: number;
+  structureLifeYears: number;
+  salvageFloor: number;
+  premium0: number;
+  premiumDecayYears: number;
+  infraBumps: InfraBump[];
+
+  // ---- E. Maintenance, CAM & property tax ----
+  maintenanceMode: MaintenanceMode;
+  societyCamPerSqftMonth0: number;
+  ownerMaintPctOfRent: number;
+  ownerMaintPctOfValue: number;
+  camEscalationPct: number;
+  maintenanceAgeAccelPct: number;
+  propertyTaxAnnual0: number;
+  propertyTaxGrowthPct: number;
+  waterTaxAnnual0: number;
+  waterTaxGrowthPct: number;
+  majorRepairReservePctOfValue: number;
+  interiorRefreshCycleYears: number;
+  interiorRefreshPctOfInitial: number;
+
+  // ---- F. Financing — apartment ----
+  loanAmount: number;
+  loanRatePct: number;
+  loanTenureYears: number;
+  prepaymentAnnual: number;
+
+  // ---- G. Switches ----
+  rentalCashUse: RentalCashUse;
+  taxRegime: TaxRegime;
+  compareMode: CompareMode;
+
+  // ---- H. Tax & market ----
+  marginalTaxPct: number;
+  surchargeCess: SurchargeCess;
+  ltcgPropertyPct: number;
+  ltcgEquityPct: number;
+  equityLtcgExemptionAnnual: number;
+  equityCagrPct: number;
+  cpiPct: number;
+  sellingCostPct: number;
+  liquidityHaircutPct: number;
+
+  // ---- D'. Redevelopment ----
+  redevelopmentEnabled: boolean;
+  redevEligibleAgeYears: number;
+  redevOptionValuePctOfLand: number;
+
+  // ---- I. Plot self-build module ----
+  plotAreaSqft: number;
+  floors: number;
+  farBuildableRatio: number;
+  builtUpAreaSqft: number; // 0 => derive from plotArea*far
+  constructionRatePerSqft: number;
+  constructionSoftCostsPct: number;
+  constructionContingencyPct: number;
+  constructionMonths: number;
+  constructionFinancing: ConstructionFinancing;
+  landLoanAmount: number;
+  constructionLoanAmount: number;
+  plotLoanRatePct: number;
+  constructionLoanRatePct: number;
+  compositeLoanTenureYears: number;
+  preEMIduringConstruction: boolean;
+
+  // ---- horizon ----
+  holdYears: number;
 }
 
-/** One row of the per-period schedule (§6A). The engine emits an array of these. */
+/** One row of the per-period schedule (§6A). Produced by compute(); read by the table. */
 export interface PeriodRow {
-  /** Month index 1..240 (0 = t0). */
-  month: number;
-  /** Year index 0..20. */
   year: number;
-  // ...all §6A columns added per the schedule-table issue.
-  [key: string]: unknown;
+  // value stack
+  landValue: number;
+  structureValue: number;
+  premiumValue: number;
+  redevOptionValue: number;
+  propValueGross: number;
+  landSharePct: number;
+  replacementCostPerSqft: number;
+  depFactor: number;
+  // loan
+  emiAnnual: number;
+  interestPaid: number;
+  principalPaid: number;
+  loanBalanceEnd: number;
+  prepayment: number;
+  // income & opex
+  marketRent: number;
+  grossRentCollected: number;
+  societyCAM: number;
+  ownerMaintenance: number;
+  waterTax: number;
+  interiorRefresh: number;
+  majorRepairReserve: number;
+  propertyTax: number;
+  noi: number;
+  postTaxRentalCF: number;
+  // tax & reinvest
+  taxableHP: number;
+  rentalTaxOrShield: number;
+  carryForwardLossBalance: number;
+  reinvestPot: number;
+  // equity benchmark & net worth
+  equityPot: number;
+  cumOwnCashOutA: number;
+  cumContribB: number;
+  cashConservationCheck: number;
+  reNetWorth: number;
+  equityNetWorth: number;
+  netWorthGap: number;
 }
 
 /** Headline outputs (§4.10, §6). */
@@ -52,5 +190,11 @@ export interface Outputs {
   reMultiple: number;
   breakevenLandCagr: number;
   realReTerminal: number;
+  // exit waterfall (terminal row)
+  exitGross: number;
+  sellCosts: number;
+  ltcgProperty: number;
+  loanPayoff: number;
+  netSaleProceeds: number;
   rows: PeriodRow[];
 }

@@ -135,10 +135,10 @@ export function amortize(params: AmortizeParams): AmortizationResult {
     });
 
     if (year <= horizonYears) {
-      interestPaid[year] += interest;
-      principalPaid[year] += principalComponent + prepay;
-      emiAnnual[year] += emiThis;
-      prepayAnnual[year] += prepay;
+      interestPaid[year] = (interestPaid[year] ?? 0) + interest;
+      principalPaid[year] = (principalPaid[year] ?? 0) + principalComponent + prepay;
+      emiAnnual[year] = (emiAnnual[year] ?? 0) + emiThis;
+      prepayAnnual[year] = (prepayAnnual[year] ?? 0) + prepay;
       balanceEnd[year] = balance;
     }
   }
