@@ -84,7 +84,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white px-6 py-3">
-        <h1 className="text-lg font-semibold">20-Year Investment Value Calculator</h1>
+        <h1 className="text-lg font-semibold">{inputs.holdYears}-Year Investment Value Calculator</h1>
         <p className="text-xs text-slate-500">
           Real estate vs same-cash equity benchmark · opportunity-cost (XIRR) framing
         </p>
@@ -109,6 +109,7 @@ export default function App() {
             <Select label="Tax regime" value={inputs.taxRegime} options={["India_New", "India_Old"] as TaxRegime[]} onChange={(v) => patch({ taxRegime: v })} def="Old allows let-out loss set-off; New strands it." />
             <Select label="Compare mode" value={inputs.compareMode} options={["SameCashSIP", "LumpsumOnly"] as CompareMode[]} onChange={(v) => patch({ compareMode: v })} def="Whether equity also invests each EMI as a monthly SIP." />
             <Select label="Usage" value={inputs.usageMode} options={["LetOut", "SelfOccupied"]} onChange={(v) => patch({ usageMode: v })} def="Let out (earns rent) vs self-occupied (carrying cost only)." />
+            <Select label="Hold horizon" value={String(inputs.holdYears)} options={["20", "30"]} onChange={(v) => patch({ holdYears: Number(v) })} def="Projection length. 30 reveals Y21–30 growth inputs in sections B & D." />
           </div>
         </div>
       </div>

@@ -45,12 +45,15 @@ def emi(principal: float, annual_rate: float, years: int) -> float:
 # --------------------------------------------------------------------------------------
 # §4.3  Rent path (market growth phases + post-year-10 cohort drag)
 # --------------------------------------------------------------------------------------
-def g_market(t: int, g1_5: float, g6_10: float, g11_20: float) -> float:
+def g_market(t: int, g1_5: float, g6_10: float, g11_20: float,
+             g21_30: float | None = None) -> float:
     if 1 <= t <= 5:
         return g1_5
     if 6 <= t <= 10:
         return g6_10
-    return g11_20
+    if 11 <= t <= 20:
+        return g11_20
+    return g11_20 if g21_30 is None else g21_30  # years 21–30 (defaults to y11_20)
 
 
 def drag(t: int, cohort_drag: float) -> float:
@@ -61,12 +64,12 @@ def drag(t: int, cohort_drag: float) -> float:
 
 
 def rent_path(rent_per_month_0: float, g1_5: float, g6_10: float, g11_20: float,
-              cohort_drag: float, years: int = 20) -> list[float]:
+              cohort_drag: float, years: int = 20, g21_30: float | None = None) -> list[float]:
     """rent_annual(0) = rentPerMonth0*12 ; rent_annual(t)=rent_annual(t-1)*(1+g_real(t))."""
     rent = rent_per_month_0 * 12.0
     out = [rent]  # index 0 == rent_annual(0)
     for t in range(1, years + 1):
-        g_real = g_market(t, g1_5, g6_10, g11_20) - drag(t, cohort_drag)
+        g_real = g_market(t, g1_5, g6_10, g11_20, g21_30) - drag(t, cohort_drag)
         rent = rent * (1 + g_real)
         out.append(rent)
     return out
@@ -90,14 +93,25 @@ def structure_value(area_sqft: float, repl_cost_0: float, construction_infl: flo
     return area_sqft * repl * dep_factor
 
 
-def land_rate(land_rate_0: float, cagr_1_10: float, cagr_11_20: float, t: int) -> float:
-    """landRate(t) = landRate0 * (1+cagr1)^min(t,10) * (1+cagr2)^max(t-10,0)  (PRD §4.5a)."""
-    return land_rate_0 * (1 + cagr_1_10) ** min(t, 10) * (1 + cagr_11_20) ** max(t - 10, 0)
+def land_rate(land_rate_0: float, cagr_1_10: float, cagr_11_20: float, t: int,
+              cagr_21_30: float | None = None) -> float:
+    """
+    landRate(t) = landRate0
+      * (1+cagr1)^min(t,10)                  # years 1–10
+      * (1+cagr2)^clamp(t-10, 0, 10)         # years 11–20
+      * (1+cagr3)^max(t-20, 0)               # years 21–30 (cagr3 defaults to cagr2)
+    (PRD §4.5a).
+    """
+    cagr3 = cagr_11_20 if cagr_21_30 is None else cagr_21_30
+    return (land_rate_0
+            * (1 + cagr_1_10) ** min(t, 10)
+            * (1 + cagr_11_20) ** min(max(t - 10, 0), 10)
+            * (1 + cagr3) ** max(t - 20, 0))
 
 
 def land_value(uds_sqft: float, land_rate_0: float, cagr_1_10: float,
-               cagr_11_20: float, t: int) -> float:
-    return uds_sqft * land_rate(land_rate_0, cagr_1_10, cagr_11_20, t)
+               cagr_11_20: float, t: int, cagr_21_30: float | None = None) -> float:
+    return uds_sqft * land_rate(land_rate_0, cagr_1_10, cagr_11_20, t, cagr_21_30)
 
 
 # --------------------------------------------------------------------------------------
@@ -211,6 +225,21 @@ def main() -> None:
     print(f"T13 contingency (20%)               = {cs['contingency']:,.2f}")
     print(f"T13 buildInteriors                  = {cs['buildInteriors']:,.2f}")
     print(f"T13 totalConstructionCost           = {cs['totalConstructionCost']:,.2f}  [PRD 6,625,000]")
+
+    # ---- T16: 30-year horizon with explicit Y21–30 bands ----
+    #   Rent: same as T3 (rent0 30,000/mo; 7/6/5; drag 2%) but with y21_30 = 4%
+    #   (a taper). Years 21–30 g_real = 4% − 2% drag = 2%. Years 1–20 are IDENTICAL
+    #   to T3 (g21_30 does not affect t<=20).
+    rp30 = rent_path(30_000, 0.07, 0.06, 0.05, 0.02, years=30, g21_30=0.04)
+    print(f"T16 rent_annual(20) (== T3)         = {rp30[20]:,.4f}")
+    print(f"T16 rent_annual(25)                 = {rp30[25]:,.4f}")
+    print(f"T16 rent_annual(30)                 = {rp30[30]:,.4f}")
+    #   Land: same as T5 (uds 600; landRate0 38,000; 8%/6%) but cagr3 = 5% (taper).
+    lr30 = land_rate(38_000, 0.08, 0.06, 30, cagr_21_30=0.05)
+    lv30 = land_value(600, 38_000, 0.08, 0.06, 30, cagr_21_30=0.05)
+    print(f"T16 landRate(30)                    = {lr30:,.4f}")
+    print(f"T16 landValue(30)                   = {lv30:,.4f}")
+    print(f"     1.02^5 = {1.02**5:.8f} ; 1.02^10 = {1.02**10:.8f} ; 1.05^10 = {1.05**10:.8f}")
     print(line)
 
 

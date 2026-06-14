@@ -19,7 +19,8 @@ describe("full CSV export", () => {
 
   it("contains all the documented sections", () => {
     for (const marker of [
-      "# 20-Year Investment Value Calculator",
+      "# Investment Value Calculator",
+      "# Horizon (years),20",
       "## SCENARIO",
       "## ASSUMPTIONS (all inputs)",
       "## HEADLINE RESULTS",

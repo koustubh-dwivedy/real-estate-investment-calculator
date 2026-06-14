@@ -12,6 +12,8 @@ export interface RentGrowth {
   y1_5: number;
   y6_10: number;
   y11_20: number;
+  /** Years 21–30 growth (30-year horizon). Defaults to y11_20 when omitted. */
+  y21_30?: number;
   /** Cohort drag (p.a.) subtracted from market growth after year 10. */
   cohortDrag: number;
 }
@@ -20,7 +22,8 @@ export interface RentGrowth {
 export function gMarket(t: number, g: RentGrowth): number {
   if (t <= 5) return g.y1_5;
   if (t <= 10) return g.y6_10;
-  return g.y11_20;
+  if (t <= 20) return g.y11_20;
+  return g.y21_30 ?? g.y11_20;
 }
 
 /** drag(t) = 0 for t<=10 ; cohortDrag * min((t-10)/5, 1) for t>10. */
