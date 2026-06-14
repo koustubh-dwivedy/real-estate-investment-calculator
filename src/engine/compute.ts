@@ -44,7 +44,9 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     input.purchasePriceAllIn * (input.stampDutyRegPct + input.gstPct + input.brokerageBuyPct);
   const entryCosts =
     entryRatePortion + input.otherAcquisitionCostsAbs + (isPlot ? 0 : input.interiorsCapex0);
-  const ownPocketT0 = input.purchasePriceAllIn - input.loanAmount;
+  // Down-payment at t0: a plot is financed by the land loan (not the apartment loan).
+  const t0Loan = isPlot ? input.landLoanAmount : input.loanAmount;
+  const ownPocketT0 = input.purchasePriceAllIn - t0Loan;
   const totalCashAtT0 = ownPocketT0 + entryCosts;
 
   // ---------------------------------------------------------------- §4.11 construction
@@ -77,7 +79,18 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     });
     constructionRows = sched.months;
     holdLoanPrincipal = sched.combinedPrincipalAtCompletion;
-    holdLoanRate = input.constructionLoanRatePct;
+    // Post-completion EMI on the combined loan uses a principal-weighted blend of the
+    // land-loan and construction-loan rates, so both rate fields matter for the hold
+    // (PRD §4.11 "blended/stated rate"). Defaults are equal → identical to before.
+    const constructionLoan =
+      input.constructionFinancing === "OwnFunds" ? 0 : input.constructionLoanAmount;
+    const combinedForRate = input.landLoanAmount + constructionLoan;
+    holdLoanRate =
+      combinedForRate > 0
+        ? (input.landLoanAmount * input.plotLoanRatePct +
+            constructionLoan * input.constructionLoanRatePct) /
+          combinedForRate
+        : input.constructionLoanRatePct;
     holdLoanTenure = input.compositeLoanTenureYears;
   }
 

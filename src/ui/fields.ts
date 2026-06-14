@@ -27,6 +27,8 @@ export interface Section {
 }
 
 const PLOT: AcquisitionType[] = ["PlotSelfBuild"];
+/** Apartment acquisition types — for fields that don't apply to a plot self-build. */
+const APT: AcquisitionType[] = ["ReadyApartment", "UnderConstructionApartment"];
 
 export const SECTIONS: Section[] = [
   {
@@ -35,8 +37,8 @@ export const SECTIONS: Section[] = [
     fields: [
       { key: "sbua", label: "Super built-up area", kind: "number", unit: "sq ft", def: "Saleable area incl. common-area share — the basis builders quote and that structure value scales with." },
       { key: "carpetArea", label: "Carpet area", kind: "number", unit: "sq ft", def: "Usable floor area within walls. Display/sanity only unless rent is per-carpet-sqft." },
-      { key: "udsSqft", label: "UDS (land share)", kind: "number", unit: "sq ft", def: "Undivided share of land your flat owns. Drives land value — higher UDS = more land beta. ≈ full plot for self-build." },
-      { key: "ageAtPurchaseYears", label: "Age at purchase", kind: "number", unit: "years", def: "Structure age at t=0. 0 for a new build/new apartment; older = more depreciation." },
+      { key: "udsSqft", label: "UDS (land share)", kind: "number", unit: "sq ft", def: "Undivided share of land your flat owns. Drives land value — higher UDS = more land beta. (For a plot, plot area is used instead.)", only: APT },
+      { key: "ageAtPurchaseYears", label: "Age at purchase", kind: "number", unit: "years", def: "Structure age at t=0. 0 for a new build/new apartment; older = more depreciation. (A plot's house is new, measured from completion.)", only: APT },
       { key: "purchasePriceAllIn", label: "Purchase price (all-in)", kind: "money", unit: "₹", def: "Apartment price (BSP + PLC + floor rise + parking + amenities), excl. stamp/reg/GST. For a plot, the LAND price only." },
     ],
   },
@@ -78,8 +80,8 @@ export const SECTIONS: Section[] = [
       { key: "physicalDepRatePct", label: "Physical depreciation", kind: "pct", unit: "% p.a.", def: "Straight-line wear of the structure (≈1.67%/yr for a 60-yr RCC life)." },
       { key: "economicDepRatePct", label: "Economic depreciation", kind: "pct", unit: "% p.a.", def: "Obsolescence on top of physical wear (dated layouts, amenities) — higher for tall societies." },
       { key: "salvageFloor", label: "Salvage floor", kind: "number", unit: "ratio 0–1", def: "Minimum fraction of new value the structure retains, however old (e.g. 0.10)." },
-      { key: "premium0", label: "Newness premium (t0)", kind: "money", unit: "₹ / sq ft", def: "Brand/newness premium buyers pay for a fresh building, per sq ft. ~0 for self-build." },
-      { key: "premiumDecayYears", label: "Premium decay", kind: "number", unit: "years", def: "Years over which the newness premium fades to zero." },
+      { key: "premium0", label: "Newness premium (t0)", kind: "money", unit: "₹ / sq ft", def: "Brand/newness premium buyers pay for a fresh building, per sq ft. (Not applied to a self-build.)", only: APT },
+      { key: "premiumDecayYears", label: "Premium decay", kind: "number", unit: "years", def: "Years over which the newness premium fades to zero.", only: APT },
     ],
   },
   {
@@ -102,9 +104,9 @@ export const SECTIONS: Section[] = [
     id: "financing",
     title: "F · Financing",
     fields: [
-      { key: "loanAmount", label: "Loan amount", kind: "money", unit: "₹", def: "Principal borrowed (apartment). Down payment = price − loan + entry costs. For a plot, the land loan." },
-      { key: "loanRatePct", label: "Loan rate", kind: "pct", unit: "% p.a.", def: "Annual home-loan interest rate (floating assumed flat over the hold)." },
-      { key: "loanTenureYears", label: "Loan tenure", kind: "number", unit: "years", def: "Loan term used to compute the EMI." },
+      { key: "loanAmount", label: "Loan amount", kind: "money", unit: "₹", def: "Principal borrowed. Down payment = price − loan + entry costs. (Plots use the Land loan + Construction loan in section I.)", only: APT },
+      { key: "loanRatePct", label: "Loan rate", kind: "pct", unit: "% p.a.", def: "Annual home-loan interest rate (floating assumed flat over the hold). (Plots: set Land/Construction loan rates in section I.)", only: APT },
+      { key: "loanTenureYears", label: "Loan tenure", kind: "number", unit: "years", def: "Loan term used to compute the EMI. (Plots use Composite tenure in section I.)", only: APT },
       { key: "prepaymentAnnual", label: "Prepayment / year", kind: "money", unit: "₹ / year", def: "Extra principal paid each year-end (shortens tenure, EMI fixed). Default 0." },
     ],
   },
@@ -134,9 +136,10 @@ export const SECTIONS: Section[] = [
       { key: "constructionSoftCostsPct", label: "Soft costs", kind: "pct", unit: "% of base", def: "Architect/structural fees, soil testing, plan approval, betterment charges, utility connections.", only: PLOT },
       { key: "constructionContingencyPct", label: "Contingency", kind: "pct", unit: "% of base", def: "Reserve for cost overruns during the build (the video used 20%).", only: PLOT },
       { key: "constructionMonths", label: "Construction duration", kind: "number", unit: "months", def: "Build window — no occupancy or rent, but carrying cost (pre-EMI + draws) accrues.", only: PLOT },
-      { key: "landLoanAmount", label: "Land loan", kind: "money", unit: "₹", def: "Loan against the plot, disbursed at t=0.", only: PLOT },
+      { key: "landLoanAmount", label: "Land loan", kind: "money", unit: "₹", def: "Loan against the plot, disbursed at t=0. Down payment = plot price − land loan.", only: PLOT },
+      { key: "plotLoanRatePct", label: "Land loan rate", kind: "pct", unit: "% p.a.", def: "Rate on the land loan: drives its interest-only pre-EMI during the build, and is principal-weight-blended with the construction-loan rate for the post-completion EMI.", only: PLOT },
       { key: "constructionLoanAmount", label: "Construction loan", kind: "money", unit: "₹", def: "Loan for the build, disbursed in tranches as work progresses (interest-only during the build).", only: PLOT },
-      { key: "constructionLoanRatePct", label: "Construction loan rate", kind: "pct", unit: "% p.a.", def: "Rate on the construction loan (prices above a plain home loan).", only: PLOT },
+      { key: "constructionLoanRatePct", label: "Construction loan rate", kind: "pct", unit: "% p.a.", def: "Rate on the construction loan (prices above a plain home loan). Blended with the land-loan rate for the post-completion EMI.", only: PLOT },
       { key: "compositeLoanTenureYears", label: "Composite tenure", kind: "number", unit: "years", def: "Term of the combined land+construction loan once full EMI begins at completion.", only: PLOT },
     ],
   },
