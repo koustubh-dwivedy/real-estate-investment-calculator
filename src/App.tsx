@@ -16,6 +16,7 @@ import type {
 import { getDefaults } from "./defaults";
 import { compute } from "./engine/compute";
 import { parseInputsFromCsv } from "./ui/importCsv";
+import type { DisplayMode } from "./ui/realMode";
 import InputsPanel from "./ui/InputsPanel";
 import ResultsPanel from "./ui/ResultsPanel";
 import ScheduleTable from "./ui/ScheduleTable";
@@ -81,6 +82,9 @@ export default function App() {
     );
 
   const out = useMemo(() => compute(inputs), [inputs]);
+
+  // --- nominal vs real (today's money) display toggle (display-only) ---
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("nominal");
 
   // --- import a previously exported full CSV (restores the exact scenario) ---
   const fileRef = useRef<HTMLInputElement>(null);
@@ -155,6 +159,7 @@ export default function App() {
             <Select label="Usage" value={inputs.usageMode} options={["LetOut", "SelfOccupied"]} onChange={(v) => patch({ usageMode: v })} def="Let out (earns rent) vs self-occupied (carrying cost only)." />
             <Select label="Hold horizon" value={String(inputs.holdYears)} options={["20", "30"]} onChange={(v) => patch({ holdYears: Number(v) })} def="Projection length. 30 reveals Y21–30 growth inputs in sections B & D." />
             <Select label="Rent renewal" value={String(inputs.rentAgreementMonths)} options={["11", "12"]} onChange={(v) => patch({ rentAgreementMonths: Number(v) })} def="Lease renewal cadence (months). 11 (typical in India) compounds rent escalation ~9% faster over 20y; occupancy unchanged." />
+            <Select label="Display" value={displayMode === "real" ? "Real (today's money)" : "Nominal"} options={["Nominal", "Real (today's money)"]} onChange={(v) => setDisplayMode(v.startsWith("Real") ? "real" : "nominal")} def="Display-only. Real deflates every ₹ figure by inflation to today's money; engine stays nominal." />
           </div>
         </div>
       </div>
@@ -166,9 +171,31 @@ export default function App() {
         </section>
         {/* Right results — flows with the page for full room. */}
         <section className="flex min-w-0 flex-col gap-5">
-          <ResultsPanel inputs={inputs} out={out} />
+          <div
+            className={`rounded border px-3 py-2 text-[11px] leading-snug ${
+              displayMode === "real"
+                ? "border-violet-200 bg-violet-50 text-violet-700"
+                : "border-slate-200 bg-slate-50 text-slate-500"
+            }`}
+          >
+            {displayMode === "real" ? (
+              <>
+                <b>Showing TODAY'S MONEY (real).</b> All ₹ amounts, both charts, and the schedule's money
+                columns are deflated at <b>{(inputs.cpiPct * 100).toFixed(1)}% p.a.</b> from the start of the
+                hold{inputs.acquisitionType === "PlotSelfBuild" ? " (= completion for a plot build)" : ""}.
+                XIRRs are shown <b>real</b>. RE multiple and breakeven land CAGR stay <b>nominal</b>. The CSV
+                export is always nominal.
+              </>
+            ) : (
+              <>
+                <b>Showing NOMINAL ₹</b> (future rupees). Lines tagged "today's money" are inflation-adjusted.
+                Switch <b>Display → Real</b> (top) to express everything in today's purchasing power.
+              </>
+            )}
+          </div>
+          <ResultsPanel inputs={inputs} out={out} mode={displayMode} />
           <Insights inputs={inputs} out={out} />
-          <ScheduleTable inputs={inputs} out={out} />
+          <ScheduleTable inputs={inputs} out={out} mode={displayMode} />
           <footer className="py-2 text-center text-[11px] text-slate-400">
             Formulas per PRD §4; numbers from a single compute(). Verify against reference/oracle.py.
           </footer>

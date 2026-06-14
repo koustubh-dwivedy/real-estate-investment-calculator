@@ -5,20 +5,24 @@
  */
 import type { Inputs, Outputs, PeriodRow } from "../types";
 import { downloadFullCsv } from "./exportCsv";
+import { deflate, type DisplayMode } from "./realMode";
 
 interface Props {
   inputs: Inputs;
   out: Outputs;
+  mode: DisplayMode;
 }
 
 interface Col {
   key: keyof PeriodRow;
   label: string;
   group: string;
+  /** "money" deflates in real mode; "ratio"/"year" never deflate. Defaults to money. */
+  kind?: "money" | "ratio" | "year";
 }
 
 const COLS: Col[] = [
-  { key: "year", label: "Year", group: "Time" },
+  { key: "year", label: "Year", group: "Time", kind: "year" },
   { key: "loanBalanceEnd", label: "Loan bal", group: "Loan" },
   { key: "interestPaid", label: "Interest", group: "Loan" },
   { key: "principalPaid", label: "Principal", group: "Loan" },
@@ -26,7 +30,7 @@ const COLS: Col[] = [
   { key: "structureValue", label: "Structure", group: "Value stack" },
   { key: "premiumValue", label: "Premium", group: "Value stack" },
   { key: "propValueGross", label: "Gross value", group: "Value stack" },
-  { key: "landSharePct", label: "Land %", group: "Value stack" },
+  { key: "landSharePct", label: "Land %", group: "Value stack", kind: "ratio" },
   { key: "marketRent", label: "Market rent", group: "Income" },
   { key: "grossRentCollected", label: "Gross rent", group: "Income" },
   { key: "noi", label: "NOI", group: "Income" },
@@ -47,14 +51,24 @@ function fmt(key: keyof PeriodRow, v: number): string {
   return Math.round(v).toLocaleString("en-IN");
 }
 
-export default function ScheduleTable({ inputs, out }: Props) {
+export default function ScheduleTable({ inputs, out, mode }: Props) {
+  const real = mode === "real";
   return (
     <div className="rounded border border-slate-200 bg-white">
       <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <div className="text-sm font-medium text-slate-800">Schedule (annual, t=0…{inputs.holdYears})</div>
+        <div>
+          <div className="text-sm font-medium text-slate-800">
+            Schedule (annual, t=0…{inputs.holdYears}) · {real ? "today's money" : "nominal ₹"}
+          </div>
+          <div className="text-[10px] text-slate-400">
+            {real
+              ? `Money columns deflated by (1+${(inputs.cpiPct * 100).toFixed(1)}%)^year; ratios (Land %) unchanged. Export CSV is always nominal.`
+              : "All figures nominal. Export CSV is always nominal."}
+          </div>
+        </div>
         <button
           className="rounded bg-slate-800 px-3 py-1 text-xs text-white hover:bg-slate-700"
-          title="Full CSV: metadata, all assumptions (units + definitions), headline results, every schedule column, and a machine-readable inputs JSON to reproduce exactly."
+          title="Full CSV (always nominal): metadata, all assumptions (units + definitions), headline results, every schedule column, and a machine-readable inputs JSON to reproduce exactly."
           onClick={() => downloadFullCsv(inputs, out)}
         >
           Export full CSV
@@ -75,7 +89,12 @@ export default function ScheduleTable({ inputs, out }: Props) {
             {out.rows.map((r) => (
               <tr key={r.year} className="odd:bg-white even:bg-slate-50">
                 {COLS.map((c) => {
-                  const v = r[c.key] as number;
+                  const rawV = r[c.key] as number;
+                  // Deflate money columns to today's money in real mode (by row year).
+                  const v =
+                    real && (c.kind ?? "money") === "money"
+                      ? deflate(rawV, r.year, inputs.cpiPct)
+                      : rawV;
                   const bad = c.key === "cashConservationCheck" && Math.abs(v) > 1;
                   return (
                     <td
