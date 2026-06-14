@@ -102,7 +102,7 @@ export default function App() {
         <section className="lg:sticky lg:top-4 lg:self-start">
           <InputsPanel inputs={inputs} onChange={patch} />
         </section>
-        <section className="flex flex-col gap-4">
+        <section className="flex min-w-0 flex-col gap-4">
           <ResultsPanel inputs={inputs} out={out} />
           <Insights inputs={inputs} out={out} />
           <ScheduleTable inputs={inputs} out={out} />

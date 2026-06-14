@@ -31,7 +31,11 @@ interface ComputeOptions {
 export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
   const N = input.holdYears;
   const isPlot = input.acquisitionType === "PlotSelfBuild";
-  const offsetMonths = isPlot ? input.constructionMonths : 0;
+  // Month counts must be whole numbers — they size monthly arrays. Round defensively
+  // so non-integer inputs (e.g. a sensitivity sweep on constructionMonths) can't
+  // produce an invalid array length.
+  const constructionMonths = isPlot ? Math.max(0, Math.round(input.constructionMonths)) : 0;
+  const offsetMonths = constructionMonths;
   const landCagr1 = opts.landCagrOverride ?? input.landCagrY1_10;
   const landCagr2 = opts.landCagrOverride ?? input.landCagrY11_20;
 
@@ -63,7 +67,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     totalConstructionCost = stack.totalConstructionCost;
     const sched = constructionSchedule({
       costStack: stack,
-      constructionMonths: input.constructionMonths,
+      constructionMonths,
       constructionFinancing: input.constructionFinancing,
       landLoanAmount: input.landLoanAmount,
       constructionLoanAmount: input.constructionLoanAmount,
