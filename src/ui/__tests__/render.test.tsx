@@ -5,6 +5,8 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import App from "../../App";
+import ResultsPanel from "../ResultsPanel";
+import ScheduleTable from "../ScheduleTable";
 import { compute } from "../../engine/compute";
 import { getDefaults } from "../../defaults";
 
@@ -15,6 +17,24 @@ describe("App renders", () => {
     expect(html).toContain("Equity terminal");
     expect(html).toContain("Breakeven land CAGR");
     expect(html).toContain("Schedule");
+  });
+
+  it("renders the results panel and schedule in real mode without throwing", () => {
+    const inputs = getDefaults({ geography: "Bangalore", assetType: "MidRiseSociety", acquisitionType: "ReadyApartment" });
+    const out = compute(inputs);
+    const panel = renderToStaticMarkup(<ResultsPanel inputs={inputs} out={out} mode="real" />);
+    const table = renderToStaticMarkup(<ScheduleTable inputs={inputs} out={out} mode="real" />);
+    // (renderToStaticMarkup HTML-escapes the apostrophe in "today's", so match parts.)
+    expect(panel).toContain("Nominal RE terminal"); // complementary basis shown
+    expect(panel).toContain("future ₹ (not deflated)");
+    expect(panel).toContain("RE XIRR (real)"); // XIRR tag flips to real
+    expect(panel).toContain("nominal — unaffected by display mode"); // multiple stays nominal
+    expect(table).toContain("Export CSV is always nominal");
+
+    // nominal mode keeps the original labels (and the complementary "Real RE terminal")
+    const nominalPanel = renderToStaticMarkup(<ResultsPanel inputs={inputs} out={out} mode="nominal" />);
+    expect(nominalPanel).toContain("Real RE terminal");
+    expect(nominalPanel).toContain("RE XIRR (nominal)");
   });
 });
 

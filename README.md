@@ -45,6 +45,12 @@ Vite + React + TypeScript, Tailwind, Recharts. Pure formula modules in `src/engi
 unit-tested with Vitest. No backend, no persistence (CSV export of the schedule is
 allowed).
 
+**Nominal / Real display:** a top-bar **Display** toggle re-expresses every ₹ figure,
+both charts, and the schedule's money columns in either nominal future rupees or
+**today's money** (deflated by `(1+cpi)^t`). XIRRs show real in real mode; RE multiple
+and breakeven land CAGR stay nominal. This is display-only — the engine and the CSV
+export are always nominal.
+
 **Save & restore scenarios:** "Export full CSV" embeds a machine-readable
 `## INPUTS_JSON` block; the **Import CSV** button (top-right) restores the exact
 scenario from a previously exported file so you can keep tweaking it. Older exports
