@@ -4,6 +4,7 @@
  * cashConservationCheck column is the live col-37 guard (red if |diff| > ₹1).
  */
 import type { Inputs, Outputs, PeriodRow } from "../types";
+import { downloadFullCsv } from "./exportCsv";
 
 interface Props {
   inputs: Inputs;
@@ -46,30 +47,17 @@ function fmt(key: keyof PeriodRow, v: number): string {
   return Math.round(v).toLocaleString("en-IN");
 }
 
-function exportCsv(rows: PeriodRow[]) {
-  const header = COLS.map((c) => c.label).join(",");
-  const body = rows
-    .map((r) => COLS.map((c) => (r[c.key] as number)).join(","))
-    .join("\n");
-  const blob = new Blob([`${header}\n${body}`], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "schedule.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export default function ScheduleTable({ out }: Props) {
+export default function ScheduleTable({ inputs, out }: Props) {
   return (
     <div className="rounded border border-slate-200 bg-white">
-      <div className="flex items-center justify-between px-3 py-2">
-        <div className="text-sm font-medium text-slate-800">Schedule (annual)</div>
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <div className="text-sm font-medium text-slate-800">Schedule (annual, t=0…20)</div>
         <button
           className="rounded bg-slate-800 px-3 py-1 text-xs text-white hover:bg-slate-700"
-          onClick={() => exportCsv(out.rows)}
+          title="Full CSV: metadata, all assumptions (units + definitions), headline results, every schedule column, and a machine-readable inputs JSON to reproduce exactly."
+          onClick={() => downloadFullCsv(inputs, out)}
         >
-          Export CSV
+          Export full CSV
         </button>
       </div>
       <div className="max-h-[420px] overflow-auto">

@@ -306,6 +306,57 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     acc += ownCashOut[m] ?? 0;
     cumOwnByMonth[m] = acc;
   }
+
+  // t=0 opening row — the acquisition snapshot at the start of the hold clock
+  // (purchase for an apartment; completion for a plot build). All flows are 0; the
+  // value stack is at t=0, the loan is at its opening balance, and the equity sleeve
+  // holds the cash deployed so far.
+  {
+    const v0 = valueRows[0]!;
+    const loanBalance0 = holdLoan.balanceEnd[0] ?? holdLoanPrincipal;
+    const equityPot0 = equity.potByMonth[offsetMonths] ?? 0;
+    const cumOwn0 = cumOwnByMonth[offsetMonths] ?? 0;
+    const cumContrib0 = equity.cumContribByMonth[offsetMonths] ?? 0;
+    const reNetWorth0 = v0.propValueClean - loanBalance0;
+    rows.push({
+      year: 0,
+      landValue: v0.landValue,
+      structureValue: v0.structureValue,
+      premiumValue: v0.premiumValue,
+      redevOptionValue: v0.redevValue,
+      propValueGross: v0.propValueClean,
+      landSharePct: v0.landSharePct,
+      replacementCostPerSqft: v0.replacementCostPerSqft,
+      depFactor: v0.depFactor,
+      emiAnnual: 0,
+      interestPaid: 0,
+      principalPaid: 0,
+      loanBalanceEnd: loanBalance0,
+      prepayment: 0,
+      marketRent: 0,
+      grossRentCollected: 0,
+      societyCAM: 0,
+      ownerMaintenance: 0,
+      waterTax: 0,
+      interiorRefresh: 0,
+      majorRepairReserve: 0,
+      propertyTax: 0,
+      noi: 0,
+      postTaxRentalCF: 0,
+      taxableHP: 0,
+      rentalTaxOrShield: 0,
+      carryForwardLossBalance: 0,
+      reinvestPot: 0,
+      equityPot: equityPot0,
+      cumOwnCashOutA: cumOwn0,
+      cumContribB: cumContrib0,
+      cashConservationCheck: cumContrib0 - cumOwn0,
+      reNetWorth: reNetWorth0,
+      equityNetWorth: equityPot0,
+      netWorthGap: reNetWorth0 - equityPot0,
+    });
+  }
+
   for (let t = 1; t <= N; t++) {
     const v = valueRows[t]!;
     const o = opexRows[t - 1]!;
