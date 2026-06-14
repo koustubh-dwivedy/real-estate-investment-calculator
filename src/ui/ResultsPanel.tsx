@@ -92,8 +92,8 @@ export default function ResultsPanel({ inputs, out }: Props) {
       </div>
 
       <div className="rounded border border-slate-200 bg-white p-3">
-        <div className="mb-2 text-xs font-medium text-slate-600">Value stack over time</div>
-        <ResponsiveContainer width="100%" height={240}>
+        <div className="mb-2 text-sm font-medium text-slate-700">Value stack over time</div>
+        <ResponsiveContainer width="100%" height={380}>
           <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
@@ -109,8 +109,8 @@ export default function ResultsPanel({ inputs, out }: Props) {
       </div>
 
       <div className="rounded border border-slate-200 bg-white p-3">
-        <div className="mb-2 text-xs font-medium text-slate-600">Net worth: RE vs Equity</div>
-        <ResponsiveContainer width="100%" height={200}>
+        <div className="mb-2 text-sm font-medium text-slate-700">Net worth: RE vs Equity</div>
+        <ResponsiveContainer width="100%" height={340}>
           <ComposedChart data={out.rows.map((r) => ({ year: r.year, RE: Math.round(r.reNetWorth), Equity: Math.round(r.equityNetWorth) }))}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
