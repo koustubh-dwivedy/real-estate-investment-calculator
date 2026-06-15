@@ -4,7 +4,6 @@
  * cashConservationCheck column is the live col-37 guard (red if |diff| > ₹1).
  */
 import type { Inputs, Outputs, PeriodRow } from "../types";
-import { downloadFullCsv } from "./exportCsv";
 import { deflate, type DisplayMode } from "./realMode";
 
 interface Props {
@@ -55,24 +54,15 @@ export default function ScheduleTable({ inputs, out, mode }: Props) {
   const real = mode === "real";
   return (
     <div className="rounded border border-slate-200 bg-white">
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <div>
-          <div className="text-sm font-medium text-slate-800">
-            Schedule (annual, t=0…{inputs.holdYears}) · {real ? "today's money" : "nominal ₹"}
-          </div>
-          <div className="text-[10px] text-slate-400">
-            {real
-              ? `Money columns deflated by (1+${(inputs.cpiPct * 100).toFixed(1)}%)^year; ratios (Land %) unchanged. Export CSV is always nominal.`
-              : "All figures nominal. Export CSV is always nominal."}
-          </div>
+      <div className="px-3 py-2">
+        <div className="text-sm font-medium text-slate-800">
+          Schedule (annual, t=0…{inputs.holdYears}) · {real ? "today's money" : "nominal ₹"}
         </div>
-        <button
-          className="rounded bg-slate-800 px-3 py-1 text-xs text-white hover:bg-slate-700"
-          title="Full CSV (always nominal): metadata, all assumptions (units + definitions), headline results, every schedule column, and a machine-readable inputs JSON to reproduce exactly."
-          onClick={() => downloadFullCsv(inputs, out)}
-        >
-          Export full CSV
-        </button>
+        <div className="text-[10px] text-slate-400">
+          {real
+            ? `Money columns deflated by (1+${(inputs.cpiPct * 100).toFixed(1)}%)^year; ratios (Land %) unchanged. Export (top-right) is always nominal.`
+            : "All figures nominal. Export CSV (top-right) is always nominal."}
+        </div>
       </div>
       <div className="max-h-[420px] overflow-auto">
         <table className="min-w-full border-collapse text-right text-xs">

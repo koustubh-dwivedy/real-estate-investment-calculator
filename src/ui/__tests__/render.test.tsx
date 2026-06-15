@@ -18,6 +18,8 @@ describe("App renders", () => {
     expect(html).toContain("Equity terminal");
     expect(html).toContain("Breakeven land CAGR");
     expect(html).toContain("Schedule");
+    expect(html).toContain("⤓ Export CSV"); // export now in the top header
+    expect(html).toContain("Rent vs Buy"); // rent-vs-buy card renders
   });
 
   it("renders the results panel and schedule in real mode without throwing", () => {
@@ -30,7 +32,7 @@ describe("App renders", () => {
     expect(panel).toContain("future ₹ (not deflated)");
     expect(panel).toContain("RE XIRR (real)"); // XIRR tag flips to real
     expect(panel).toContain("nominal — unaffected by display mode"); // multiple stays nominal
-    expect(table).toContain("Export CSV is always nominal");
+    expect(table).toContain("always nominal");
 
     // sensitivity tornado renders with the new explainer + legend (and a plot variant)
     const insights = renderToStaticMarkup(<Insights inputs={inputs} out={out} mode="nominal" />);

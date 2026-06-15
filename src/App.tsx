@@ -16,6 +16,7 @@ import type {
 import { getDefaults } from "./defaults";
 import { compute } from "./engine/compute";
 import { parseInputsFromCsv } from "./ui/importCsv";
+import { downloadFullCsv } from "./ui/exportCsv";
 import RentVsBuy from "./ui/RentVsBuy";
 import type { DisplayMode } from "./ui/realMode";
 import InputsPanel from "./ui/InputsPanel";
@@ -124,13 +125,22 @@ export default function App() {
               e.target.value = ""; // allow re-selecting the same file
             }}
           />
-          <button
-            className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            title="Load a scenario from a previously exported full CSV (restores its inputs)."
-            onClick={() => fileRef.current?.click()}
-          >
-            ⤴ Import CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="rounded bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
+              title="Download the full scenario as CSV (always nominal): metadata, all assumptions, headline + rent-vs-buy results, the full schedule, and a machine-readable inputs JSON."
+              onClick={() => downloadFullCsv(inputs, out)}
+            >
+              ⤓ Export CSV
+            </button>
+            <button
+              className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              title="Load a scenario from a previously exported full CSV (restores its inputs)."
+              onClick={() => fileRef.current?.click()}
+            >
+              ⤴ Import CSV
+            </button>
+          </div>
           {importMsg ? (
             <span className={`text-[11px] ${importMsg.ok ? "text-emerald-600" : "text-rose-600"}`}>
               {importMsg.text}

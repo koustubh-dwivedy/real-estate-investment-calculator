@@ -4,7 +4,7 @@
  * moves the renter terminal; finite across scenarios.
  */
 import { describe, it, expect } from "vitest";
-import { rentVsBuy } from "../rentVsBuy";
+import { rentVsBuy, rentVsBuySensitivity } from "../rentVsBuy";
 import { compute } from "../compute";
 import { getDefaults } from "../../defaults";
 import type { Inputs } from "../../types";
@@ -52,6 +52,25 @@ describe("T23 — rent-vs-buy model", () => {
     expect(rentVsBuy({ ...inp, securityDepositMonths: 10 }, baseRent).renterTerminal).not.toBe(base);
     expect(rentVsBuy({ ...inp, renewalCostMonths: 3 }, baseRent).renterTerminal).not.toBe(base);
     expect(rentVsBuy({ ...inp, renewalCycleYears: 5 }, baseRent).renterTerminal).not.toBe(base);
+  });
+
+  it("the rent you'd pay respects the 11/12-month renewal cadence", () => {
+    const inp = apt();
+    const r12 = rentVsBuy({ ...inp, rentAgreementMonths: 12 }, inp.altRentPerMonth0).renterTerminal;
+    const r11 = rentVsBuy({ ...inp, rentAgreementMonths: 11 }, inp.altRentPerMonth0).renterTerminal;
+    // 11-month cadence → rent compounds faster → renter pays more → lower renter terminal
+    expect(r11).not.toBeCloseTo(r12, 0);
+  });
+
+  it("rentVsBuySensitivity returns finite, sorted bars driven by equity CAGR & appreciation", () => {
+    const inp = apt();
+    const bars = rentVsBuySensitivity(inp, inp.altRentPerMonth0, 0.15);
+    expect(bars.length).toBeGreaterThan(0);
+    for (const b of bars) expect(Number.isFinite(b.span)).toBe(true);
+    for (let i = 1; i < bars.length; i++) expect(bars[i - 1]!.span).toBeGreaterThanOrEqual(bars[i]!.span);
+    const labels = bars.map((b) => b.label);
+    expect(labels).toContain("Equity CAGR");
+    expect(labels).toContain("Property appreciation");
   });
 
   it("finite across geographies and asset types", () => {

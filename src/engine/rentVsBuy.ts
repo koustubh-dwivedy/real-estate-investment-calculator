@@ -38,8 +38,8 @@ export interface RentVsBuyResult {
 }
 
 /** Buyer's annual housing cash outflow (self-occupied) and terminal sale proceeds. */
-function buyerSide(inputs: Inputs) {
-  const out = compute({ ...inputs, usageMode: "SelfOccupied" });
+function buyerSide(inputs: Inputs, skipBreakeven = false) {
+  const out = compute({ ...inputs, usageMode: "SelfOccupied" }, { skipBreakeven });
   const N = inputs.holdYears;
   const t0 = out.rows.find((r) => r.year === 0)!.cumOwnCashOutA; // down-payment + entry
   // year t housing cash = −postTaxRentalCF(t) (EMI + opex − tax shield), >0 for self-occupied
@@ -61,10 +61,12 @@ function renterSide(
 ): { terminal: number; rows?: RentVsBuyYear[] } {
   const { t0, annual, N, buyerNetWorthByYear } = buyer;
   const deposit = altRent0 * inputs.securityDepositMonths;
-  // alt-rent annual path (₹/year), escalating at altRentGrowthPct
+  // alt-rent annual path (₹/year): your tenant rent escalates at altRentGrowthPct on
+  // the same 11/12-month renewal cadence as the property.
   const rentYear = rentPath(altRent0, {
     y1_5: inputs.altRentGrowthPct, y6_10: inputs.altRentGrowthPct,
     y11_20: inputs.altRentGrowthPct, y21_30: inputs.altRentGrowthPct, cohortDrag: 0,
+    renewalMonths: inputs.rentAgreementMonths,
   }, N);
 
   // monthly contribution stream: t0 lump (minus deposit), then each year's leftover/12
@@ -131,4 +133,44 @@ export function rentVsBuy(inputs: Inputs, altRentPerMonth0: number): RentVsBuyRe
     rows: renter.rows!,
     sweep,
   };
+}
+
+/** Fast buyer−renter gap (skips the internal break-even + sweep) for sensitivity. */
+function rvbGap(inputs: Inputs, altRent: number): number {
+  const buyer = buyerSide(inputs, true);
+  return buyer.buyerTerminal - renterSide(inputs, buyer, altRent, false).terminal;
+}
+
+export interface RvbSensBar {
+  label: string;
+  low: number; // gap delta at −stress
+  high: number; // gap delta at +stress
+  span: number;
+}
+
+/**
+ * Mini sensitivity of the rent-vs-buy verdict: each key driver stressed ±stress,
+ * measuring the shift in the gap (buyer − renter; +ve favours buying). Sorted by span.
+ */
+export function rentVsBuySensitivity(inputs: Inputs, altRent: number, stress = 0.15): RvbSensBar[] {
+  const isPlot = inputs.acquisitionType === "PlotSelfBuild";
+  const drivers: { keys: (keyof Inputs)[]; label: string }[] = [
+    { keys: ["equityCagrPct"], label: "Equity CAGR" },
+    { keys: ["altRentGrowthPct"], label: "Rent growth" },
+    { keys: ["landCagrY1_10", "landCagrY11_20"], label: "Property appreciation" },
+    { keys: isPlot ? ["plotLoanRatePct", "constructionLoanRatePct"] : ["loanRatePct"], label: "Loan rate" },
+  ];
+  const base = rvbGap(inputs, altRent);
+  const bars = drivers.map((d) => {
+    const lo = { ...inputs };
+    const hi = { ...inputs };
+    for (const k of d.keys) {
+      (lo[k] as number) = (inputs[k] as number) * (1 - stress);
+      (hi[k] as number) = (inputs[k] as number) * (1 + stress);
+    }
+    const dLo = rvbGap(lo, altRent) - base;
+    const dHi = rvbGap(hi, altRent) - base;
+    return { label: d.label, low: Math.min(dLo, dHi), high: Math.max(dLo, dHi), span: Math.abs(dHi - dLo) };
+  });
+  return bars.filter((b) => b.span >= 1).sort((a, b) => b.span - a.span);
 }
