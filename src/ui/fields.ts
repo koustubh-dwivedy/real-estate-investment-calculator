@@ -45,7 +45,7 @@ export const SECTIONS: Section[] = [
     id: "rent",
     title: "B · Rent & growth",
     fields: [
-      { key: "rentPerMonth0", label: "Starting rent", kind: "money", unit: "₹ / month", def: "Market rent at t=0 if let out. For a plot, the rent at completion (grown from t=0 thereafter)." },
+      { key: "rentPerMonth0", label: "Rent if let out (income)", kind: "money", unit: "₹ / month", def: "The rent your flat would EARN if you let it out — drives Buy-vs-Equity (let-out). NOT used in Rent-vs-Buy (that uses the 'rent you'd pay' in the Rent-vs-Buy card)." },
       { key: "rentGrowthY1_5", label: "Rent growth Y1–5", kind: "pct", unit: "% p.a.", def: "Annual market rent growth in years 1–5." },
       { key: "rentGrowthY6_10", label: "Rent growth Y6–10", kind: "pct", unit: "% p.a.", def: "Annual market rent growth in years 6–10." },
       { key: "rentGrowthY11_20", label: "Rent growth Y11–20", kind: "pct", unit: "% p.a.", def: "Annual market rent growth in years 11–20." },
