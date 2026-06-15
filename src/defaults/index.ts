@@ -114,7 +114,6 @@ function baseIndia(): Inputs {
     acquisitionType: "ReadyApartment",
     assetType: "MidRiseSociety",
     sbua: 1200,
-    carpetArea: 840,
     udsSqft: 240,
     ageAtPurchaseYears: 0,
     purchasePriceAllIn: 15_000_000,
@@ -129,7 +128,6 @@ function baseIndia(): Inputs {
     reLetBrokerageMonths: 1,
     rentAgreementMonths: 12, // 12 = plain annual escalation; 11 compounds faster
     usageMode: "LetOut",
-    imputedRentBenefit: false,
 
     stampDutyRegPct: 0.07,
     gstPct: 0,
@@ -145,7 +143,6 @@ function baseIndia(): Inputs {
     constructionInflationPct: 0.06,
     physicalDepRatePct: 0.0167,
     economicDepRatePct: 0.018,
-    structureLifeYears: 60,
     salvageFloor: 0.1,
     premium0: 1200,
     premiumDecayYears: 12,
@@ -175,7 +172,7 @@ function baseIndia(): Inputs {
     compareMode: "SameCashSIP",
 
     marginalTaxPct: 0.3,
-    surchargeCess: "31.2",
+    surchargeCess: "cess", // 30% × 1.04 = 31.2% effective (matches prior default)
     ltcgPropertyPct: 0.125,
     ltcgEquityPct: 0.125,
     equityLtcgExemptionAnnual: 125_000,
@@ -190,8 +187,8 @@ function baseIndia(): Inputs {
 
     plotAreaSqft: 500,
     floors: 2,
-    farBuildableRatio: 0.9,
-    builtUpAreaSqft: 1750,
+    farBuildableRatio: 1.75, // effective buildable per floor (incl. balconies/projections)
+    builtUpAreaSqft: 0, // 0 = derive (= plot × FAR × floors = 1750); set to override
     constructionRatePerSqft: 2500,
     constructionSoftCostsPct: 0.12,
     constructionContingencyPct: 0.2,
@@ -208,16 +205,14 @@ function baseIndia(): Inputs {
   };
 }
 
-/** Effective tax rate from marginal rate + surcharge/cess toggle. */
+/**
+ * Effective tax rate = marginal rate × surcharge/cess factor, so the marginal rate
+ * always matters. At the default 30%: none→30%, +cess(4%)→31.2%, +surcharge+cess→35.8%.
+ */
 export function effTaxRate(inputs: Inputs): number {
-  switch (inputs.surchargeCess) {
-    case "31.2":
-      return 0.312;
-    case "35.8":
-      return 0.358;
-    default:
-      return inputs.marginalTaxPct;
-  }
+  const factor =
+    inputs.surchargeCess === "cess" ? 1.04 : inputs.surchargeCess === "surcharge" ? 1.1933 : 1.0;
+  return inputs.marginalTaxPct * factor;
 }
 
 export interface DefaultsKey {

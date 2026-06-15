@@ -25,7 +25,7 @@ export type AssetType =
   | "MidRiseSociety"
   | "HighRiseSociety";
 
-export type SurchargeCess = "none" | "31.2" | "35.8";
+export type SurchargeCess = "none" | "cess" | "surcharge";
 export type CompareMode = "SameCashSIP" | "LumpsumOnly";
 export type ConstructionFinancing = "CompositeLoan" | "OwnFunds";
 
@@ -35,7 +35,6 @@ export interface Inputs {
   acquisitionType: AcquisitionType;
   assetType: AssetType;
   sbua: number;
-  carpetArea: number;
   udsSqft: number;
   ageAtPurchaseYears: number;
   /** Apartment acquisition price (ex stamp/reg/GST). For PlotSelfBuild = plot price only. */
@@ -54,7 +53,6 @@ export interface Inputs {
   /** Lease renewal cadence in months (11 common in India, or 12). See rent.ts. */
   rentAgreementMonths: number;
   usageMode: UsageMode;
-  imputedRentBenefit: boolean;
 
   // ---- C. Entry costs (t=0) ----
   stampDutyRegPct: number;
@@ -73,7 +71,6 @@ export interface Inputs {
   constructionInflationPct: number;
   physicalDepRatePct: number;
   economicDepRatePct: number;
-  structureLifeYears: number;
   salvageFloor: number;
   premium0: number;
   premiumDecayYears: number;
