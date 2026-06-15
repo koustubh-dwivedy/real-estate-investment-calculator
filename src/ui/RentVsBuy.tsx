@@ -164,6 +164,23 @@ export default function RentVsBuy({ inputs, onChange, mode }: Props) {
         </ResponsiveContainer>
       </div>
 
+      {/* net worth over time */}
+      <div className="rounded border border-slate-200 p-2">
+        <div className="mb-1 text-xs font-medium text-slate-600">Net worth over time · {basis}</div>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={rvb.rows.map((r) => ({ year: r.year, Buyer: Math.round(dY(r.buyerNetWorth, r.year)), Renter: Math.round(dY(r.renterPortfolio, r.year)) }))}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+            <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} width={68} tickFormatter={(v) => formatMoney(v, geo)} />
+            <Tooltip formatter={(v: number) => formatMoney(v, geo, "raw")} labelFormatter={(v) => `Year ${v}`} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" dataKey="Buyer" stroke="#2563eb" dot={false} strokeWidth={2} />
+            <Line type="monotone" dataKey="Renter" stroke="#16a34a" dot={false} strokeWidth={2} />
+          </LineChart>
+        </ResponsiveContainer>
+        <div className="mt-1 text-[10px] text-slate-400">Buyer = home equity (value − loan); Renter = equity portfolio (incl. deposit).</div>
+      </div>
+
       {/* mini-tornado: what flips the verdict */}
       <div className="rounded border border-slate-200 p-2">
         <div className="mb-1 text-xs font-medium text-slate-600">What flips the verdict (each ±15%)</div>
@@ -178,27 +195,33 @@ export default function RentVsBuy({ inputs, onChange, mode }: Props) {
             const posLeft = 50 + (Math.max(b.low, 0) / sensMax) * 50;
             const posWidth = ((b.high - Math.max(b.low, 0)) / sensMax) * 50;
             return (
-              <div key={b.label} className="flex items-center gap-2 text-[11px]">
-                <div className="w-32 shrink-0 text-slate-600">{b.label}</div>
+              <div key={b.label} className="flex items-center gap-1.5 text-[11px]">
+                <div className="w-28 shrink-0 text-slate-600">{b.label}</div>
+                <div className="w-16 shrink-0 text-right text-amber-700" title={`−15% shifts the gap by ${formatMoney(dT(b.low), geo)}`}>
+                  {b.low < 0 ? formatMoney(dT(b.low), geo) : "—"}
+                </div>
                 <div className="relative h-3.5 flex-1 bg-slate-100">
                   <div className="absolute left-1/2 top-0 h-3.5 w-px bg-slate-400" />
                   {negWidth > 0 ? <div className="absolute top-0 h-3.5 bg-amber-300" style={{ left: `${negLeft}%`, width: `${negWidth}%` }} /> : null}
                   {posWidth > 0 ? <div className="absolute top-0 h-3.5 bg-blue-300" style={{ left: `${posLeft}%`, width: `${posWidth}%` }} /> : null}
                 </div>
-                <div className="w-20 shrink-0 text-right text-slate-500">{formatMoney(dT(b.span), geo)}</div>
+                <div className="w-16 shrink-0 text-left text-blue-700" title={`+15% shifts the gap by ${formatMoney(dT(b.high), geo)}`}>
+                  {b.high > 0 ? `+${formatMoney(dT(b.high), geo)}` : "—"}
+                </div>
               </div>
             );
           })}
         </div>
-        <div className="mt-1 text-[10px] text-slate-400">Bar = how far the buyer−renter gap moves if that assumption is ±15%. Change values in the left panel (or rent above).</div>
+        <div className="mt-1 text-[10px] text-slate-400">Numbers either side = how far the buyer−renter gap moves at −15% (left, favours renting) and +15% (right, favours buying). Change values in the left panel (or rent above).</div>
       </div>
 
       {/* year-by-year table (always shown) */}
+      <div className="text-[10px] text-slate-400">Year-by-year (t=0…{N}). "Renter − Buyer" = renter portfolio minus buyer home-equity: positive ⇒ renter ahead, negative ⇒ buyer ahead.</div>
       <div className="max-h-72 overflow-auto rounded border border-slate-200">
         <table className="min-w-full text-right text-[11px]">
           <thead className="sticky top-0 bg-slate-100 text-slate-600">
             <tr>
-              {["Yr", "Buyer cash", "Rent", "Renewal", "Renter invests", "Renter pot", "Buyer equity", "Ahead by"].map((h) => (
+              {["Yr", "Buyer cash", "Rent", "Renewal", "Renter invests", "Renter pot", "Buyer equity", "Renter − Buyer"].map((h) => (
                 <th key={h} className="whitespace-nowrap px-2 py-1 font-medium">{h}</th>
               ))}
             </tr>

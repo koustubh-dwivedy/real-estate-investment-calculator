@@ -16,7 +16,8 @@ describe("T23 — rent-vs-buy model", () => {
     const inp = apt();
     const rvb = rentVsBuy(inp, inp.altRentPerMonth0);
     expect(rvb.buyerTerminal).toBeCloseTo(compute({ ...inp, usageMode: "SelfOccupied" }).netSaleProceeds, 2);
-    expect(rvb.rows.length).toBe(inp.holdYears);
+    expect(rvb.rows.length).toBe(inp.holdYears + 1); // years 0…N
+    expect(rvb.rows[0]!.year).toBe(0); // table starts at t=0
   });
 
   it("renter terminal strictly decreases as the rent you'd pay rises", () => {
