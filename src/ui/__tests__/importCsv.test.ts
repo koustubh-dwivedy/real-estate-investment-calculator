@@ -15,6 +15,12 @@ const scenario = () => ({
   rentPerMonth0: 55_000,
   loanRatePct: 0.082,
   constructionLoanAmount: 3_000_000,
+  // rent-vs-buy renting inputs must round-trip too
+  altRentPerMonth0: 42_000,
+  altRentGrowthPct: 0.055,
+  securityDepositMonths: 6,
+  renewalCostMonths: 2,
+  renewalCycleYears: 3,
 });
 
 describe("export → import round-trip", () => {

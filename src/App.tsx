@@ -16,6 +16,7 @@ import type {
 import { getDefaults } from "./defaults";
 import { compute } from "./engine/compute";
 import { parseInputsFromCsv } from "./ui/importCsv";
+import RentVsBuy from "./ui/RentVsBuy";
 import type { DisplayMode } from "./ui/realMode";
 import InputsPanel from "./ui/InputsPanel";
 import ResultsPanel from "./ui/ResultsPanel";
@@ -196,6 +197,7 @@ export default function App() {
           </div>
           <ResultsPanel inputs={inputs} out={out} mode={displayMode} />
           <Insights inputs={inputs} out={out} mode={displayMode} />
+          <RentVsBuy inputs={inputs} onChange={patch} mode={displayMode} />
           <ScheduleTable inputs={inputs} out={out} mode={displayMode} />
           <footer className="py-2 text-center text-[11px] text-slate-400">
             Formulas per PRD §4; numbers from a single compute(). Verify against reference/oracle.py.

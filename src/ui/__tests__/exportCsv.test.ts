@@ -35,7 +35,8 @@ describe("full CSV export", () => {
   it("includes a t=0 row and runs through year 20 in the schedule", () => {
     const lines = csv.split("\n");
     const i = lines.findIndex((l) => l.startsWith("## SCHEDULE"));
-    const dataRows = lines.slice(i + 2).filter((l) => /^\d+,/.test(l));
+    const end = lines.findIndex((l, idx) => idx > i && l.startsWith("## ")); // bound to the schedule section
+    const dataRows = lines.slice(i + 2, end === -1 ? undefined : end).filter((l) => /^\d+,/.test(l));
     expect(dataRows[0]!.startsWith("0,")).toBe(true); // t=0 first
     expect(dataRows.some((l) => l.startsWith("20,"))).toBe(true); // through year 20
     expect(dataRows.length).toBe(21); // years 0..20

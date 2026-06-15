@@ -11,6 +11,7 @@
 import type { Inputs, Outputs, PeriodRow } from "../types";
 import { SECTIONS, type FieldKind } from "./fields";
 import { effTaxRate } from "../defaults";
+import { rentVsBuy } from "../engine/rentVsBuy";
 
 const REPO = "https://github.com/koustubh-dwivedy/real-estate-investment-calculator";
 
@@ -51,11 +52,17 @@ const NON_FIELD_LABELS: Record<string, { label: string; def: string }> = {
   plotLoanRatePct: { label: "Plot loan rate", def: "Interest rate on the land loan." },
   infraBumps: { label: "Infra bumps", def: "One-off land-value uplifts {year, pct}." },
   holdYears: { label: "Hold years", def: "Investment horizon (years)." },
+  altRentPerMonth0: { label: "Rent-vs-buy: rent you'd pay (₹/mo)", def: "Rent for an equivalent home if you rent instead of buy." },
+  altRentGrowthPct: { label: "Rent-vs-buy: rent growth", def: "Annual escalation of the rent you'd pay." },
+  securityDepositMonths: { label: "Rent-vs-buy: security deposit (months)", def: "Deposit set aside at t0, returned at exit." },
+  renewalCostMonths: { label: "Rent-vs-buy: renewal cost (months)", def: "Brokerage + moving per lease renewal." },
+  renewalCycleYears: { label: "Rent-vs-buy: renewal cycle (years)", def: "Years between lease renewals." },
 };
 
 const PCT_KEYS = new Set<string>([
   "redevOptionValuePctOfLand",
   "ownerMaintPctOfValue",
+  "altRentGrowthPct",
   "waterTaxGrowthPct",
   "plotLoanRatePct",
 ]);
@@ -165,6 +172,21 @@ export function buildFullCsv(inputs: Inputs, out: Outputs): string {
   const cols = out.rows.length ? (Object.keys(out.rows[0] as PeriodRow) as (keyof PeriodRow)[]) : [];
   lines.push(cols.map(String).join(","));
   for (const r of out.rows) lines.push(cols.map((c) => csvCell(r[c])).join(","));
+  blank();
+
+  // 5b — rent vs buy (self-occupied: buy & live vs rent & invest the difference)
+  const rvb = rentVsBuy(inputs, inputs.altRentPerMonth0);
+  lines.push("## RENT VS BUY (self-occupied; nominal)");
+  lines.push(row("Metric", "Value"));
+  lines.push(row("Rent you'd pay (₹/mo)", inputs.altRentPerMonth0));
+  lines.push(row("Buyer net worth", Math.round(rvb.buyerTerminal)));
+  lines.push(row("Renter net worth", Math.round(rvb.renterTerminal)));
+  lines.push(row("Gap (buyer − renter)", Math.round(rvb.gap)));
+  lines.push(row("Break-even rent (₹/mo)", Number.isFinite(rvb.breakevenRent) ? Math.round(rvb.breakevenRent) : ""));
+  blank();
+  const rvbCols = ["year", "buyerHousingCash", "rentPaid", "renewalCost", "renterInvested", "renterPortfolio", "buyerNetWorth", "aheadBy"] as const;
+  lines.push(rvbCols.join(","));
+  for (const r of rvb.rows) lines.push(rvbCols.map((c) => csvCell(r[c])).join(","));
   blank();
 
   // 6 — machine-readable exact inputs

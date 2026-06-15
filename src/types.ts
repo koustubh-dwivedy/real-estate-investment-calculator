@@ -54,6 +54,18 @@ export interface Inputs {
   rentAgreementMonths: number;
   usageMode: UsageMode;
 
+  // ---- Rent-vs-Buy (renting alternative; used only by rentVsBuy, not compute) ----
+  /** Rent you'd pay for an equivalent home if you rent instead of buy (₹/month). */
+  altRentPerMonth0: number;
+  /** Annual escalation of that rent. */
+  altRentGrowthPct: number;
+  /** Security deposit in months of rent (set aside at t0, returned at exit). */
+  securityDepositMonths: number;
+  /** Brokerage + moving cost per lease renewal, in months of rent. */
+  renewalCostMonths: number;
+  /** Years between lease renewals (renewal cost recurs on this cycle). */
+  renewalCycleYears: number;
+
   // ---- C. Entry costs (t=0) ----
   stampDutyRegPct: number;
   gstPct: number;

@@ -1,0 +1,66 @@
+/**
+ * T23 — rent-vs-buy. Buyer terminal ties to the self-occupied sale proceeds; renter
+ * terminal is monotonic in rent; break-even is where they tie; each renting input
+ * moves the renter terminal; finite across scenarios.
+ */
+import { describe, it, expect } from "vitest";
+import { rentVsBuy } from "../rentVsBuy";
+import { compute } from "../compute";
+import { getDefaults } from "../../defaults";
+import type { Inputs } from "../../types";
+
+const apt = (): Inputs => getDefaults({ geography: "Bangalore", assetType: "MidRiseSociety", acquisitionType: "ReadyApartment" });
+
+describe("T23 — rent-vs-buy model", () => {
+  it("buyer terminal equals the self-occupied net sale proceeds", () => {
+    const inp = apt();
+    const rvb = rentVsBuy(inp, inp.altRentPerMonth0);
+    expect(rvb.buyerTerminal).toBeCloseTo(compute({ ...inp, usageMode: "SelfOccupied" }).netSaleProceeds, 2);
+    expect(rvb.rows.length).toBe(inp.holdYears);
+  });
+
+  it("renter terminal strictly decreases as the rent you'd pay rises", () => {
+    const inp = apt();
+    let prev = Infinity;
+    for (const rent of [10_000, 30_000, 50_000, 80_000, 120_000]) {
+      const t = rentVsBuy(inp, rent).renterTerminal;
+      expect(t).toBeLessThan(prev);
+      prev = t;
+      expect(Number.isFinite(t)).toBe(true);
+    }
+  });
+
+  it("a crossover exists: very low rent → renting wins, very high → buying wins", () => {
+    const inp = apt();
+    expect(rentVsBuy(inp, 5_000).gap).toBeLessThan(0); // renter ahead (gap = buyer − renter)
+    expect(rentVsBuy(inp, 150_000).gap).toBeGreaterThan(0); // buyer ahead
+  });
+
+  it("at the break-even rent, buyer and renter tie", () => {
+    const inp = apt();
+    const be = rentVsBuy(inp, inp.altRentPerMonth0).breakevenRent;
+    expect(Number.isFinite(be)).toBe(true);
+    const atBe = rentVsBuy(inp, be);
+    expect(Math.abs(atBe.gap)).toBeLessThan(Math.max(1, atBe.buyerTerminal * 1e-4));
+  });
+
+  it("each renting input moves the renter terminal (independence within rent-vs-buy)", () => {
+    const inp = apt();
+    const baseRent = inp.altRentPerMonth0;
+    const base = rentVsBuy(inp, baseRent).renterTerminal;
+    expect(rentVsBuy({ ...inp, altRentGrowthPct: inp.altRentGrowthPct * 1.5 }, baseRent).renterTerminal).not.toBe(base);
+    expect(rentVsBuy({ ...inp, securityDepositMonths: 10 }, baseRent).renterTerminal).not.toBe(base);
+    expect(rentVsBuy({ ...inp, renewalCostMonths: 3 }, baseRent).renterTerminal).not.toBe(base);
+    expect(rentVsBuy({ ...inp, renewalCycleYears: 5 }, baseRent).renterTerminal).not.toBe(base);
+  });
+
+  it("finite across geographies and asset types", () => {
+    for (const g of ["Bangalore", "Mumbai"] as const)
+      for (const a of ["MidRiseSociety", "HighRiseSociety", "StandaloneApartment"] as const) {
+        const inp = getDefaults({ geography: g, assetType: a, acquisitionType: "ReadyApartment" });
+        const rvb = rentVsBuy(inp, inp.altRentPerMonth0);
+        expect(Number.isFinite(rvb.buyerTerminal) && Number.isFinite(rvb.renterTerminal)).toBe(true);
+        for (const r of rvb.rows) for (const v of Object.values(r)) expect(Number.isFinite(v)).toBe(true);
+      }
+  });
+});

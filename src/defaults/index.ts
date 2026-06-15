@@ -129,6 +129,13 @@ function baseIndia(): Inputs {
     rentAgreementMonths: 12, // 12 = plain annual escalation; 11 compounds faster
     usageMode: "LetOut",
 
+    // rent-vs-buy (renting alternative)
+    altRentPerMonth0: 35_000, // anchored to rentPerMonth0 below in getDefaults
+    altRentGrowthPct: 0.06,
+    securityDepositMonths: 3,
+    renewalCostMonths: 1,
+    renewalCycleYears: 2,
+
     stampDutyRegPct: 0.07,
     gstPct: 0,
     brokerageBuyPct: 0,
@@ -242,6 +249,8 @@ export function getDefaults(key: DefaultsKey): Inputs {
   d.rentGrowthY6_10 = geo.rentGrowthY6_10;
   d.rentGrowthY11_20 = geo.rentGrowthY11_20;
   d.rentGrowthY21_30 = geo.rentGrowthY11_20; // extrapolate Y11–20 by default
+  d.altRentGrowthPct = geo.rentGrowthY1_5; // renting alternative escalation
+  d.altRentPerMonth0 = d.rentPerMonth0; // anchor the rent you'd pay to the property's rent
   d.landRate0 = isPlot ? geo.landRate0Plot : geo.landRate0Apartment;
   d.replacementCost0 = isPlot ? geo.replacementCost0SelfBuild : geo.replacementCost0Apartment;
 
