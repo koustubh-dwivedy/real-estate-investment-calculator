@@ -262,15 +262,17 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
   for (const r of constructionRows) {
     ownCashOut[r.month] = (ownCashOut[r.month] ?? 0) + r.ownPocketDraw + r.preEMI;
   }
-  // hold window: EMI each month (SameCashSIP) + negCarry at year-ends
+  // hold window: Engine B deploys the buyer's actual out-of-pocket cash. The net pocket
+  // each year is the negative carry = max(EMI + opex + tax − rent, 0); the EMI is ALREADY
+  // inside negCarry (postTaxRentalCF = NOI − EMI − tax), so it must NOT be added again —
+  // doing so double-counted it (see docs/AUDIT.md FINDING-1). SameCashSIP mirrors that full
+  // out-of-pocket; LumpsumOnly invests only the upfront lump(s) (t0 + construction draws).
   const sameCash = input.compareMode === "SameCashSIP";
-  for (const m of holdLoan.monthly) {
-    const cal = offsetMonths + m.month;
-    if (cal <= totalMonths && sameCash) ownCashOut[cal] = (ownCashOut[cal] ?? 0) + m.emi;
-  }
-  for (let t = 1; t <= N; t++) {
-    const cal = offsetMonths + t * 12;
-    ownCashOut[cal] = (ownCashOut[cal] ?? 0) + (reinvest.negCarryByYear[t] ?? 0);
+  if (sameCash) {
+    for (let t = 1; t <= N; t++) {
+      const cal = offsetMonths + t * 12;
+      ownCashOut[cal] = (ownCashOut[cal] ?? 0) + (reinvest.negCarryByYear[t] ?? 0);
+    }
   }
 
   const equity = computeEquityBenchmark({

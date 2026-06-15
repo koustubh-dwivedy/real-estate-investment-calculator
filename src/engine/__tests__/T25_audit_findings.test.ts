@@ -25,14 +25,17 @@ function controlled(): Inputs {
   };
 }
 
-describe("T25 — FINDING-1: Engine-B EMI double-count (buy-vs-equity)", () => {
+describe("T25 — FINDING-1: Engine-B EMI double-count (buy-vs-equity) — FIXED (Fix A)", () => {
   // Hand-derivation: down-payment 20; year-1 EMI 80, rent 24 → buyer out-of-pocket
-  // = 20 + (80 − 24) = 76. At 0% equity growth, EQ_terminal should equal 76.
-  it("CURRENT (buggy) behaviour: EQ_terminal = 156 (EMI double-counted as t0+EMI+negCarry)", () => {
-    expect(compute(controlled()).eqTerminal).toBeCloseTo(156, 2);
+  // = 20 + (80 − 24) = 76. At 0% equity growth, EQ_terminal equals that out-of-pocket.
+  // Pre-fix this returned 156 (EMI double-counted as t0 + EMI + negCarry). Fix A drops
+  // the separate EMI term (it is already inside negCarry). See docs/AUDIT.md FINDING-1.
+  it("EQ_terminal equals the buyer's true out-of-pocket = 76 (no EMI double-count)", () => {
+    expect(compute(controlled()).eqTerminal).toBeCloseTo(76, 2);
   });
 
-  it.skip("PROPOSED FIX: EQ_terminal should equal the buyer's true out-of-pocket = 76", () => {
-    expect(compute(controlled()).eqTerminal).toBeCloseTo(76, 2);
+  // LumpsumOnly now invests only the upfront lump(s): down-payment 20, no annual top-ups.
+  it("LumpsumOnly invests only the upfront lump = 20", () => {
+    expect(compute({ ...controlled(), compareMode: "LumpsumOnly" }).eqTerminal).toBeCloseTo(20, 2);
   });
 });

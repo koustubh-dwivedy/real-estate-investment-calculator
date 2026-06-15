@@ -39,7 +39,7 @@ const NON_FIELD_LABELS: Record<string, { label: string; def: string }> = {
   rentAgreementMonths: { label: "Rent agreement (renewal cadence, months)", def: "Lease renewal cadence: escalation compounds 12/value times per year. 11 (India-typical) grows rent ~9% faster over 20y than 12; occupancy unchanged." },
   rentalCashUse: { label: "Rental cash use", def: "Where surplus rent goes: ReinvestEquity / PrepayLoan / Pocket." },
   taxRegime: { label: "Tax regime", def: "India_Old allows let-out loss set-off; India_New strands it." },
-  compareMode: { label: "Compare mode", def: "SameCashSIP invests each EMI as an equity SIP; LumpsumOnly does not." },
+  compareMode: { label: "Compare mode", def: "SameCashSIP: equity invests the buyer's full out-of-pocket cash (down-payment + annual shortfall after rent; EMI is inside the shortfall, never double-counted). LumpsumOnly: only the upfront lump(s)." },
   surchargeCess: { label: "Surcharge/cess", def: "Multiplies marginal tax: none ×1, cess ×1.04, surcharge ×1.1933." },
   maintenanceMode: { label: "Maintenance mode", def: "TenantPaysCAM or OwnerBearsAll." },
   constructionFinancing: { label: "Construction financing", def: "CompositeLoan (land+construction) or OwnFunds." },
