@@ -8,7 +8,18 @@ bug is pinned in `T25` (current behaviour passing; proposed-correct value skippe
 
 ---
 
-## 🔴 FINDING-1 (material): Engine-B double-counts the EMI (buy-vs-equity only)
+## ✅ FINDING-1 (material) — RESOLVED via Fix A on 2026-06-16: Engine-B double-counted the EMI (buy-vs-equity only)
+
+> **Resolution:** Fix A applied (`compute.ts` §4.9). The separate EMI term was dropped;
+> Engine B now deploys `t0 + construction draws + Σ negCarry` in `SameCashSIP`, and only
+> the upfront lump(s) in `LumpsumOnly`. `T25` now asserts the hand-derived correct values
+> (76 same-cash, 20 lumpsum). `T21` snapshot re-baselined (eqTerminal roughly halved, gap
+> less negative, breakeven land-CAGR lower — real estate correctly looks better). §7 golden
+> anchors and the 400-scenario fuzz suite remained green throughout. Original finding below
+> for the record.
+
+---
+
 
 **Where:** `compute.ts` §4.9 Engine-B stream (lines ~259–281) + `reinvest.ts` `negCarry`.
 
@@ -96,7 +107,7 @@ plus a second EMI).
 
 ## Bottom line
 The **underlying formulas are sound** (every §7 anchor matches the independent oracle to
-the paisa; 400-scenario fuzz is clean). **One material integration bug** — the Engine-B
-EMI double-count in **buy-vs-equity** — overstates the equity benchmark and the breakeven
-land-CAGR. RE terminal/XIRR and the entire Rent-vs-Buy comparison are correct. Awaiting
-your decision on Fix A vs Fix B before changing behaviour.
+the paisa; 400-scenario fuzz is clean). The **one material integration bug** — the Engine-B
+EMI double-count in **buy-vs-equity**, which overstated the equity benchmark and the
+breakeven land-CAGR — has been **fixed (Fix A, 2026-06-16)**. RE terminal/XIRR and the
+Rent-vs-Buy comparison were already correct and are unchanged.
