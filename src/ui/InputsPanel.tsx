@@ -4,10 +4,35 @@
  */
 import type { Inputs } from "../types";
 import { SECTIONS, type FieldDef } from "./fields";
+import { formatMoney } from "./format";
 
 interface Props {
   inputs: Inputs;
   onChange: (patch: Partial<Inputs>) => void;
+}
+
+/** Read-only derived values for a plot (price is computed = plot area × land rate). */
+function PlotDiagnostics({ inputs }: { inputs: Inputs }) {
+  const price = inputs.plotAreaSqft * inputs.landRate0;
+  const downPayment = price - inputs.landLoanAmount;
+  return (
+    <div className="rounded border border-sky-200 bg-sky-50 p-3 text-xs">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+        Derived (read-only)
+      </div>
+      <div className="flex justify-between gap-2 text-slate-700">
+        <span>Plot price = area × land rate</span>
+        <span className="font-semibold">{formatMoney(price, inputs.geography)}</span>
+      </div>
+      <div className="flex justify-between gap-2 text-slate-700">
+        <span>Down-payment = price − land loan</span>
+        <span className="font-semibold">{formatMoney(downPayment, inputs.geography)}</span>
+      </div>
+      <div className="mt-1 text-[10px] text-slate-400">
+        Set the plot price via <b>Plot area</b> and <b>Land rate</b> (section I / D).
+      </div>
+    </div>
+  );
 }
 
 function FieldInput({ field, inputs, onChange }: { field: FieldDef } & Props) {
@@ -39,6 +64,7 @@ function FieldInput({ field, inputs, onChange }: { field: FieldDef } & Props) {
 export default function InputsPanel({ inputs, onChange }: Props) {
   return (
     <div className="flex flex-col gap-2">
+      {inputs.acquisitionType === "PlotSelfBuild" ? <PlotDiagnostics inputs={inputs} /> : null}
       {SECTIONS.map((section) => {
         const fields = section.fields.filter(
           (f) =>

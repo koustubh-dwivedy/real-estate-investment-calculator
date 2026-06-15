@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import App from "../../App";
 import ResultsPanel from "../ResultsPanel";
 import ScheduleTable from "../ScheduleTable";
+import Insights from "../Insights";
 import { compute } from "../../engine/compute";
 import { getDefaults } from "../../defaults";
 
@@ -30,6 +31,13 @@ describe("App renders", () => {
     expect(panel).toContain("RE XIRR (real)"); // XIRR tag flips to real
     expect(panel).toContain("nominal — unaffected by display mode"); // multiple stays nominal
     expect(table).toContain("Export CSV is always nominal");
+
+    // sensitivity tornado renders with the new explainer + legend (and a plot variant)
+    const insights = renderToStaticMarkup(<Insights inputs={inputs} out={out} mode="nominal" />);
+    expect(insights).toContain("What moves the result most?");
+    expect(insights).toContain("favours real estate");
+    const plotInputs = getDefaults({ geography: "Bangalore", assetType: "PlottedDevelopmentVilla", acquisitionType: "PlotSelfBuild" });
+    expect(() => renderToStaticMarkup(<Insights inputs={plotInputs} out={compute(plotInputs)} mode="real" />)).not.toThrow();
 
     // nominal mode keeps the original labels (and the complementary "Real RE terminal")
     const nominalPanel = renderToStaticMarkup(<ResultsPanel inputs={inputs} out={out} mode="nominal" />);

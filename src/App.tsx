@@ -194,7 +194,7 @@ export default function App() {
             )}
           </div>
           <ResultsPanel inputs={inputs} out={out} mode={displayMode} />
-          <Insights inputs={inputs} out={out} />
+          <Insights inputs={inputs} out={out} mode={displayMode} />
           <ScheduleTable inputs={inputs} out={out} mode={displayMode} />
           <footer className="py-2 text-center text-[11px] text-slate-400">
             Formulas per PRD §4; numbers from a single compute(). Verify against reference/oracle.py.
