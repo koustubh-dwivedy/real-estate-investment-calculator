@@ -88,20 +88,30 @@ export default function RentVsBuy({ inputs, onChange, mode }: Props) {
           onChange={(e) => onChange({ altRentPerMonth0: Number(e.target.value) })}
           className="mt-2 w-full"
         />
-        <div className="mt-1 flex items-end gap-2">
-          <RentField
-            label="Rent / month" unit="₹/mo"
-            def="What you'd pay a landlord for an equal home — drives ONLY Rent-vs-Buy (independent of the flat's let-out rent)"
-            def0={formatMoney(inputs.rentPerMonth0, geo)}
-            value={inputs.altRentPerMonth0} onChange={(v) => onChange({ altRentPerMonth0: v })}
-          />
-          <button
-            className="self-end rounded border border-slate-300 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-100"
-            title={`Set it to the flat's let-out rent (${formatMoney(inputs.rentPerMonth0, geo)}/mo, from section B)`}
-            onClick={() => onChange({ altRentPerMonth0: inputs.rentPerMonth0 })}
-          >
-            match flat's rent
-          </button>
+        <div className="mt-1 flex flex-col gap-0.5 text-xs">
+          <span className="flex items-baseline justify-between gap-1">
+            <span className="font-medium text-slate-700">Rent / month</span>
+            <span className="text-[10px] text-slate-400">₹/mo</span>
+          </span>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+              value={Number.isFinite(inputs.altRentPerMonth0) ? inputs.altRentPerMonth0 : 0}
+              step="any"
+              onChange={(e) => onChange({ altRentPerMonth0: parseFloat(e.target.value) || 0 })}
+            />
+            <button
+              className="shrink-0 whitespace-nowrap rounded border border-slate-300 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-100"
+              title={`Set it to the flat's let-out rent (${formatMoney(inputs.rentPerMonth0, geo)}/mo, from section B)`}
+              onClick={() => onChange({ altRentPerMonth0: inputs.rentPerMonth0 })}
+            >
+              Match flat's rent
+            </button>
+          </div>
+          <span className="text-[10px] leading-snug text-slate-400">
+            What you'd pay a landlord for an equal home — drives ONLY Rent-vs-Buy (independent of the flat's let-out rent) · default {formatMoney(inputs.rentPerMonth0, geo)}
+          </span>
         </div>
         <div className="mt-1 text-[10px] text-slate-400">
           Escalates at the rent growth below, on your {inputs.rentAgreementMonths}-month renewal cadence.
