@@ -15,6 +15,8 @@ interface Props {
 function PlotDiagnostics({ inputs }: { inputs: Inputs }) {
   const price = inputs.plotAreaSqft * inputs.landRate0;
   const downPayment = price - inputs.landLoanAmount;
+  const derivedBua = inputs.plotAreaSqft * inputs.farBuildableRatio * inputs.floors;
+  const bua = inputs.builtUpAreaSqft > 0 ? inputs.builtUpAreaSqft : derivedBua;
   return (
     <div className="rounded border border-sky-200 bg-sky-50 p-3 text-xs">
       <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
@@ -28,8 +30,12 @@ function PlotDiagnostics({ inputs }: { inputs: Inputs }) {
         <span>Down-payment = price − land loan</span>
         <span className="font-semibold">{formatMoney(downPayment, inputs.geography)}</span>
       </div>
+      <div className="flex justify-between gap-2 text-slate-700">
+        <span>Built-up area{inputs.builtUpAreaSqft > 0 ? " (override)" : " = plot × FAR × floors"}</span>
+        <span className="font-semibold">{Math.round(bua).toLocaleString("en-IN")} sq ft</span>
+      </div>
       <div className="mt-1 text-[10px] text-slate-400">
-        Set the plot price via <b>Plot area</b> and <b>Land rate</b> (section I / D).
+        Plot price via <b>Plot area</b> + <b>Land rate</b>; built-up area via <b>FAR</b> + <b>Floors</b> (or the override).
       </div>
     </div>
   );

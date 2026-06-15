@@ -36,7 +36,6 @@ export const SECTIONS: Section[] = [
     title: "A · Property & area",
     fields: [
       { key: "sbua", label: "Super built-up area", kind: "number", unit: "sq ft", def: "Saleable area incl. common-area share — the basis builders quote and that structure value scales with. (For a plot, use Built-up area in section I.)", only: APT },
-      { key: "carpetArea", label: "Carpet area", kind: "number", unit: "sq ft", def: "Usable floor area within walls. Display/sanity only unless rent is per-carpet-sqft.", only: APT },
       { key: "udsSqft", label: "UDS (land share)", kind: "number", unit: "sq ft", def: "Undivided share of land your flat owns. Drives land value — higher UDS = more land beta. (For a plot, plot area is used instead.)", only: APT },
       { key: "ageAtPurchaseYears", label: "Age at purchase", kind: "number", unit: "years", def: "Structure age at t=0. 0 for a new build/new apartment; older = more depreciation. (A plot's house is new, measured from completion.)", only: APT },
       { key: "purchasePriceAllIn", label: "Purchase price (all-in)", kind: "money", unit: "₹", def: "Apartment price (BSP + PLC + floor rise + parking + amenities), excl. stamp/reg/GST. (For a plot, the price is derived = plot area × land rate — see the diagnostic.)", only: APT },
@@ -61,7 +60,7 @@ export const SECTIONS: Section[] = [
     title: "C · Entry costs (one-time, t=0)",
     fields: [
       { key: "stampDutyRegPct", label: "Stamp duty + registration", kind: "pct", unit: "% of price", def: "Government transfer tax. Bangalore ~7% (2% registration since 31 Aug 2025); Mumbai ~6–7%." },
-      { key: "gstPct", label: "GST", kind: "pct", unit: "% of price", def: "Applies to under-construction property only; 0 for ready/OC-received." },
+      { key: "gstPct", label: "GST", kind: "pct", unit: "% of price", def: "Applies to under-construction property only; 0 for ready/OC-received.", only: ["UnderConstructionApartment"] },
       { key: "brokerageBuyPct", label: "Buy-side brokerage", kind: "pct", unit: "% of price", def: "Agent commission on purchase." },
       { key: "otherAcquisitionCostsAbs", label: "Other acquisition costs", kind: "money", unit: "₹", def: "Assessor/valuation + legal due diligence + documentation + khata/mutation transfer." },
       { key: "interiorsCapex0", label: "Interiors capex", kind: "money", unit: "₹", def: "Initial fit-out (modular kitchen, wardrobes, fittings). For a plot, the built house's interiors." },
@@ -129,9 +128,9 @@ export const SECTIONS: Section[] = [
     title: "I · Plot self-build",
     fields: [
       { key: "plotAreaSqft", label: "Plot area", kind: "number", unit: "sq ft", def: "Land parcel size; sets UDS and the land/value stack.", only: PLOT },
-      { key: "floors", label: "Floors", kind: "number", unit: "floors", def: "Number of floors built (built-up area can exceed the footprint).", only: PLOT },
-      { key: "farBuildableRatio", label: "FAR buildable ratio", kind: "number", unit: "ratio", def: "Effective buildable area per floor as a fraction of plot (FAR/FSI utilization).", only: PLOT },
-      { key: "builtUpAreaSqft", label: "Built-up area (override)", kind: "number", unit: "sq ft", def: "THE driver of construction cost. If set, used directly; else derived from plot × FAR × floors. 0 = derive.", only: PLOT },
+      { key: "floors", label: "Floors", kind: "number", unit: "floors", def: "Number of floors built. Built-up area = plot × FAR × floors (unless overridden).", only: PLOT },
+      { key: "farBuildableRatio", label: "FAR buildable / floor", kind: "number", unit: "ratio", def: "Effective buildable area per floor as a multiple of plot (incl. balconies/projections).", only: PLOT },
+      { key: "builtUpAreaSqft", label: "Built-up area (override)", kind: "number", unit: "sq ft", def: "THE driver of construction cost. 0 = derive from plot × FAR × floors (see diagnostic); any value >0 overrides.", only: PLOT },
       { key: "constructionRatePerSqft", label: "Construction rate", kind: "money", unit: "₹ / sq ft", def: "Build cost per sq ft of built-up area.", only: PLOT },
       { key: "constructionSoftCostsPct", label: "Soft costs", kind: "pct", unit: "% of base", def: "Architect/structural fees, soil testing, plan approval, betterment charges, utility connections.", only: PLOT },
       { key: "constructionContingencyPct", label: "Contingency", kind: "pct", unit: "% of base", def: "Reserve for cost overruns during the build (the video used 20%).", only: PLOT },

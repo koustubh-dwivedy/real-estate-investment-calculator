@@ -10,6 +10,7 @@ describe("T13 — BUA-driven construction cost (exact)", () => {
   const stack = constructionCostStack({
     plotAreaSqft: 500,
     farBuildableRatio: 0.9,
+    floors: 2,
     builtUpAreaSqft: 1750, // override per the video; BUA (not plot area) drives cost
     constructionRatePerSqft: 2500,
     constructionSoftCostsPct: 0.12,
@@ -38,6 +39,7 @@ describe("T14 — construction-period carry & hand-off", () => {
   const stack = constructionCostStack({
     plotAreaSqft: 500,
     farBuildableRatio: 0.9,
+    floors: 2,
     builtUpAreaSqft: 1750,
     constructionRatePerSqft: 2500,
     constructionSoftCostsPct: 0.12,

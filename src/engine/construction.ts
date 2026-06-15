@@ -18,15 +18,28 @@
  */
 
 export interface ConstructionCostInputs {
-  /** Authoritative driver of construction cost. If omitted, derived from plot×far. */
+  /** Override; if >0 it wins. Else derived from plotArea × farBuildableRatio × floors. */
   builtUpAreaSqft?: number;
   plotAreaSqft: number;
   farBuildableRatio: number;
+  floors: number;
   constructionRatePerSqft: number;
   constructionSoftCostsPct: number;
   constructionContingencyPct: number;
   /** Initial fit-out for the built house (interiorsCapex0). */
   buildInteriors: number;
+}
+
+/** builtUpAreaSqft override (>0) OR plotArea × farBuildableRatio × floors. */
+export function deriveBuiltUpArea(p: {
+  builtUpAreaSqft?: number;
+  plotAreaSqft: number;
+  farBuildableRatio: number;
+  floors: number;
+}): number {
+  return p.builtUpAreaSqft && p.builtUpAreaSqft > 0
+    ? p.builtUpAreaSqft
+    : p.plotAreaSqft * p.farBuildableRatio * p.floors;
 }
 
 export interface ConstructionCostStack {
@@ -39,15 +52,12 @@ export interface ConstructionCostStack {
 }
 
 /**
- * builtUpAreaSqft = override OR plotAreaSqft * farBuildableRatio.
+ * builtUpAreaSqft = override OR plotAreaSqft * farBuildableRatio * floors.
  * base = BUA * rate ; soft = base*softPct ; contingency = base*contPct ;
  * total = base + soft + contingency + interiors.
  */
 export function constructionCostStack(p: ConstructionCostInputs): ConstructionCostStack {
-  const builtUpAreaSqft =
-    p.builtUpAreaSqft && p.builtUpAreaSqft > 0
-      ? p.builtUpAreaSqft
-      : p.plotAreaSqft * p.farBuildableRatio;
+  const builtUpAreaSqft = deriveBuiltUpArea(p);
   const baseConstruction = builtUpAreaSqft * p.constructionRatePerSqft;
   const softCosts = baseConstruction * p.constructionSoftCostsPct;
   const contingency = baseConstruction * p.constructionContingencyPct;

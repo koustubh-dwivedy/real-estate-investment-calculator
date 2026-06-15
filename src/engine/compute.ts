@@ -19,7 +19,7 @@ import { computeOpexAndTax, type OpexTaxParams, type OpexTaxYearInputs } from ".
 import { computeReinvest } from "./reinvest";
 import { computeExit } from "./exit";
 import { computeEquityBenchmark } from "./equityBenchmark";
-import { constructionCostStack, constructionSchedule } from "./construction";
+import { constructionCostStack, constructionSchedule, deriveBuiltUpArea } from "./construction";
 import { xirr, bisect, type DatedCashflow } from "./numerics";
 
 interface ComputeOptions {
@@ -64,6 +64,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     const stack = constructionCostStack({
       plotAreaSqft: input.plotAreaSqft,
       farBuildableRatio: input.farBuildableRatio,
+      floors: input.floors,
       builtUpAreaSqft: input.builtUpAreaSqft,
       constructionRatePerSqft: input.constructionRatePerSqft,
       constructionSoftCostsPct: input.constructionSoftCostsPct,
@@ -109,7 +110,14 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
   }, N);
 
   // ---------------------------------------------------------------- §4.5 value stack
-  const structureAreaSqft = isPlot ? input.builtUpAreaSqft || input.plotAreaSqft * input.farBuildableRatio : input.sbua;
+  const structureAreaSqft = isPlot
+    ? deriveBuiltUpArea({
+        builtUpAreaSqft: input.builtUpAreaSqft,
+        plotAreaSqft: input.plotAreaSqft,
+        farBuildableRatio: input.farBuildableRatio,
+        floors: input.floors,
+      })
+    : input.sbua;
   const vsParams: ValueStackParams = {
     land: {
       udsSqft: isPlot ? input.plotAreaSqft : input.udsSqft,
