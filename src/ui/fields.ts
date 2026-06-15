@@ -35,11 +35,11 @@ export const SECTIONS: Section[] = [
     id: "property",
     title: "A · Property & area",
     fields: [
-      { key: "sbua", label: "Super built-up area", kind: "number", unit: "sq ft", def: "Saleable area incl. common-area share — the basis builders quote and that structure value scales with." },
-      { key: "carpetArea", label: "Carpet area", kind: "number", unit: "sq ft", def: "Usable floor area within walls. Display/sanity only unless rent is per-carpet-sqft." },
+      { key: "sbua", label: "Super built-up area", kind: "number", unit: "sq ft", def: "Saleable area incl. common-area share — the basis builders quote and that structure value scales with. (For a plot, use Built-up area in section I.)", only: APT },
+      { key: "carpetArea", label: "Carpet area", kind: "number", unit: "sq ft", def: "Usable floor area within walls. Display/sanity only unless rent is per-carpet-sqft.", only: APT },
       { key: "udsSqft", label: "UDS (land share)", kind: "number", unit: "sq ft", def: "Undivided share of land your flat owns. Drives land value — higher UDS = more land beta. (For a plot, plot area is used instead.)", only: APT },
       { key: "ageAtPurchaseYears", label: "Age at purchase", kind: "number", unit: "years", def: "Structure age at t=0. 0 for a new build/new apartment; older = more depreciation. (A plot's house is new, measured from completion.)", only: APT },
-      { key: "purchasePriceAllIn", label: "Purchase price (all-in)", kind: "money", unit: "₹", def: "Apartment price (BSP + PLC + floor rise + parking + amenities), excl. stamp/reg/GST. For a plot, the LAND price only." },
+      { key: "purchasePriceAllIn", label: "Purchase price (all-in)", kind: "money", unit: "₹", def: "Apartment price (BSP + PLC + floor rise + parking + amenities), excl. stamp/reg/GST. (For a plot, the price is derived = plot area × land rate — see the diagnostic.)", only: APT },
     ],
   },
   {

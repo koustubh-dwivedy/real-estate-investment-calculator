@@ -40,13 +40,17 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
   const landCagr2 = opts.landCagrOverride ?? input.landCagrY11_20;
 
   // ---------------------------------------------------------------- §4.1 entry cash
+  // For a plot, the price paid IS the land: plot area × land rate. This keeps price,
+  // land rate and plot area coherent (and t=0 land value == price paid). For an
+  // apartment, the all-in purchase price is the independent input.
+  const acquisitionPrice = isPlot ? input.plotAreaSqft * input.landRate0 : input.purchasePriceAllIn;
   const entryRatePortion =
-    input.purchasePriceAllIn * (input.stampDutyRegPct + input.gstPct + input.brokerageBuyPct);
+    acquisitionPrice * (input.stampDutyRegPct + input.gstPct + input.brokerageBuyPct);
   const entryCosts =
     entryRatePortion + input.otherAcquisitionCostsAbs + (isPlot ? 0 : input.interiorsCapex0);
   // Down-payment at t0: a plot is financed by the land loan (not the apartment loan).
   const t0Loan = isPlot ? input.landLoanAmount : input.loanAmount;
-  const ownPocketT0 = input.purchasePriceAllIn - t0Loan;
+  const ownPocketT0 = acquisitionPrice - t0Loan;
   const totalCashAtT0 = ownPocketT0 + entryCosts;
 
   // ---------------------------------------------------------------- §4.11 construction
@@ -154,7 +158,9 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     taxRegime: input.taxRegime,
     vacancyPct: input.vacancyPct,
     reLetBrokerageMonths: input.reLetBrokerageMonths,
-    sbua: input.sbua,
+    // Maintenance scales with the built structure: sbua for an apartment, built-up
+    // area for a plot (so plot upkeep tracks the house, not the inert sbua field).
+    sbua: structureAreaSqft,
     societyCamPerSqftMonth0: input.societyCamPerSqftMonth0,
     camEscalationPct: input.camEscalationPct,
     maintenanceAgeAccelPct: input.maintenanceAgeAccelPct,
@@ -232,7 +238,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     propValueCleanFinal: valueRows[N]!.propValueClean,
     liquidityHaircutPct: input.liquidityHaircutPct,
     sellingCostPct: input.sellingCostPct,
-    purchasePriceAllIn: input.purchasePriceAllIn,
+    purchasePriceAllIn: acquisitionPrice,
     entryCosts,
     totalConstructionCost,
     ltcgPropertyPct: input.ltcgPropertyPct,
