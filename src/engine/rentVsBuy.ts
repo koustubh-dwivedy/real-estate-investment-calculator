@@ -73,6 +73,15 @@ function renterSide(
   const ownCashOutByMonth = new Array<number>(N * 12 + 1).fill(0);
   ownCashOutByMonth[0] = t0 - deposit;
   const rows: RentVsBuyYear[] = [];
+  if (withRows) {
+    // t=0 opening row: buyer pays the down-payment + entry; renter invests the same
+    // cash (minus the deposit held), so both start from the same outlay.
+    rows.push({
+      year: 0, buyerHousingCash: t0, rentPaid: 0, renewalCost: 0,
+      renterInvested: t0 - deposit, renterPortfolio: 0, // filled below
+      buyerNetWorth: buyerNetWorthByYear[0]!, aheadBy: 0,
+    });
+  }
   for (let t = 1; t <= N; t++) {
     const rentPaid = rentYear[t]!;
     const monthlyRent = rentPaid / 12;

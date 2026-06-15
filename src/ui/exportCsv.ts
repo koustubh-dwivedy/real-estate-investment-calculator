@@ -185,7 +185,8 @@ export function buildFullCsv(inputs: Inputs, out: Outputs): string {
   lines.push(row("Break-even rent (₹/mo)", Number.isFinite(rvb.breakevenRent) ? Math.round(rvb.breakevenRent) : ""));
   blank();
   const rvbCols = ["year", "buyerHousingCash", "rentPaid", "renewalCost", "renterInvested", "renterPortfolio", "buyerNetWorth", "aheadBy"] as const;
-  lines.push(rvbCols.join(","));
+  const rvbHeader = ["year", "buyerHousingCash", "rentPaid", "renewalCost", "renterInvested", "renterPortfolio", "buyerNetWorth", "renterMinusBuyer"];
+  lines.push(rvbHeader.join(","));
   for (const r of rvb.rows) lines.push(rvbCols.map((c) => csvCell(r[c])).join(","));
   blank();
 
