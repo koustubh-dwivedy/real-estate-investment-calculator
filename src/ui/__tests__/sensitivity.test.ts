@@ -37,6 +37,28 @@ describe("sensitivity — drivers & filtering", () => {
     expect(labels).toContain("Starting rent");
   });
 
+  it("UDS bar is present and higher UDS raises the gap (apartment)", () => {
+    const inp = apt();
+    const bars = computeSensitivity(inp, compute(inp).gap, 0.15);
+    const uds = bars.find((b) => b.label === "UDS (land share)");
+    expect(uds).toBeDefined();
+    expect(uds!.span).toBeGreaterThan(1);
+    expect(uds!.kind).toBe("number");
+    expect(uds!.higherRaisesGap).toBe(true); // more land share ⇒ favours real estate
+  });
+
+  it("UDS lever becomes 'Plot area' (plotAreaSqft) for a plot", () => {
+    const inp = plot();
+    const drivers = getDrivers(inp);
+    const uds = drivers.find((d) => d.label === "Plot area");
+    expect(uds).toBeDefined();
+    expect(uds!.keys).toContain("plotAreaSqft");
+    const bars = computeSensitivity(inp, compute(inp).gap, 0.15);
+    expect(bars.some((b) => b.label === "Plot area")).toBe(true);
+    // and the apartment-only UDS label does not appear for a plot
+    expect(bars.some((b) => b.label === "UDS (land share)")).toBe(false);
+  });
+
   it("Prepayment is hidden at 0 but appears when set", () => {
     const inp = apt();
     expect(computeSensitivity(inp, compute(inp).gap, 0.15).map((b) => b.label)).not.toContain("Prepayment / year");

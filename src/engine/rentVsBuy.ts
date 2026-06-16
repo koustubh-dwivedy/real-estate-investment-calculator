@@ -174,6 +174,8 @@ export function rentVsBuySensitivity(inputs: Inputs, altRent: number, stress = 0
     { keys: ["altRentGrowthPct"], label: "Rent growth" },
     { keys: ["landCagrY1_10", "landCagrY11_20"], label: "Property appreciation" },
     { keys: isPlot ? ["plotLoanRatePct", "constructionLoanRatePct"] : ["loanRatePct"], label: "Loan rate" },
+    // Land quantum: udsSqft (apartment) / plotAreaSqft (plot) drives the buyer's land value.
+    { keys: isPlot ? ["plotAreaSqft"] : ["udsSqft"], label: isPlot ? "Plot area" : "UDS (land share)" },
   ];
   const base = rvbGap(inputs, altRent);
   const bars = drivers.map((d) => {

@@ -57,6 +57,12 @@ export function getDrivers(inputs: Inputs): DriverDef[] {
       kind: "money",
     },
     {
+      // Land quantum: the engine uses udsSqft for an apartment and plotAreaSqft for a plot.
+      keys: isPlot ? ["plotAreaSqft"] : ["udsSqft"],
+      label: isPlot ? "Plot area" : "UDS (land share)",
+      kind: "number",
+    },
+    {
       keys: isPlot ? ["landLoanAmount", "constructionLoanAmount"] : ["loanAmount"],
       label: "Loan amount (leverage)",
       kind: "money",

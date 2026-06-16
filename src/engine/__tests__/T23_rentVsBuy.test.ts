@@ -72,6 +72,14 @@ describe("T23 — rent-vs-buy model", () => {
     const labels = bars.map((b) => b.label);
     expect(labels).toContain("Equity CAGR");
     expect(labels).toContain("Property appreciation");
+    expect(labels).toContain("UDS (land share)"); // apartment land-quantum lever
+  });
+
+  it("rentVsBuySensitivity UDS lever becomes 'Plot area' for a plot", () => {
+    const inp = getDefaults({ geography: "Bangalore", assetType: "PlottedDevelopmentVilla", acquisitionType: "PlotSelfBuild" });
+    const labels = rentVsBuySensitivity(inp, inp.altRentPerMonth0, 0.15).map((b) => b.label);
+    expect(labels).toContain("Plot area");
+    expect(labels).not.toContain("UDS (land share)");
   });
 
   it("finite across geographies and asset types", () => {
