@@ -34,9 +34,14 @@ describe("T8 — switch equivalence (equityCagr = loanRate, no tax)", () => {
   const reinvest = compute({ ...scenario(), rentalCashUse: "ReinvestEquity" });
   const prepay = compute({ ...scenario(), rentalCashUse: "PrepayLoan" });
 
-  it("ReinvestEquity ≈ PrepayLoan terminal net worth within ~1%", () => {
+  it("ReinvestEquity ≈ PrepayLoan terminal net worth within ~2%", () => {
+    // The two strategies are deliberately on different cadences: ReinvestEquity deploys
+    // each month's surplus and compounds it MONTHLY (audit B2), while PrepayLoan applies
+    // surplus to principal as a YEAR-END lump (the loan product). That ~half-year timing
+    // edge — plus the loan's nominal monthly rate (rate/12) running a hair hotter than
+    // equity's (1+cagr)^(1/12) — keeps them close but no longer inside 1%.
     const rel = Math.abs(reinvest.reTerminal - prepay.reTerminal) / reinvest.reTerminal;
-    expect(rel).toBeLessThan(0.01);
+    expect(rel).toBeLessThan(0.02);
   });
 
   it("both strategies produce a positive rental surplus to deploy", () => {

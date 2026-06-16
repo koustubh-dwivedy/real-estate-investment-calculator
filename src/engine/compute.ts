@@ -13,7 +13,7 @@
 import type { Inputs, Outputs, PeriodRow } from "../types";
 import { effTaxRate } from "../defaults";
 import { amortize, type AmortizationResult } from "./loan";
-import { rentPath } from "./rent";
+import { rentMonthlyPath, annualizeRent } from "./rent";
 import { valueStackAt, type ValueStackParams } from "./valueStack";
 import { computeOpexAndTax, type OpexTaxParams, type OpexTaxYearInputs } from "./opexTax";
 import { computeReinvest } from "./reinvest";
@@ -100,14 +100,22 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
   }
 
   // ---------------------------------------------------------------- §4.3 rent path
-  const rent = rentPath(input.rentPerMonth0, {
-    y1_5: input.rentGrowthY1_5,
-    y6_10: input.rentGrowthY6_10,
-    y11_20: input.rentGrowthY11_20,
-    y21_30: input.rentGrowthY21_30,
-    cohortDrag: input.cohortDragPct,
-    renewalMonths: input.rentAgreementMonths,
-  }, N);
+  // Monthly rent, flat within each agreement term, stepping at renewal (per-term, not
+  // a smooth yearly escalation). `rentAnnual[t]` is the realized annual sum for §6A/tax.
+  const holdMonths = N * 12;
+  const rentMonthly = rentMonthlyPath(
+    input.rentPerMonth0,
+    {
+      y1_5: input.rentGrowthY1_5,
+      y6_10: input.rentGrowthY6_10,
+      y11_20: input.rentGrowthY11_20,
+      y21_30: input.rentGrowthY21_30,
+      cohortDrag: input.cohortDragPct,
+    },
+    holdMonths,
+    input.rentAgreementMonths,
+  );
+  const rentAnnual = annualizeRent(rentMonthly, N);
 
   // ---------------------------------------------------------------- §4.5 value stack
   const structureAreaSqft = isPlot
@@ -191,7 +199,8 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
       const t = i + 1;
       return {
         t,
-        rentAnnual: rent[t]!,
+        // the 12 monthly market rents for hold-year t (index 0..11)
+        rentMonths: rentMonthly.slice((t - 1) * 12 + 1, t * 12 + 1),
         age: (isPlot ? 0 : input.ageAtPurchaseYears) + t,
         propValueClean: valueRows[t]!.propValueClean,
         interestPaid: loan.interestPaid[t] ?? 0,
@@ -199,17 +208,37 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
       };
     });
 
-  let opexRows = computeOpexAndTax(opexParams, buildOpexYears(firstLoan));
+  // Monthly net rental cash (hold-indexed 1..N*12): owner rent cash − cash opex − EMI,
+  // with the annual tax settlement dropped into each year's LAST month. Σ over a year ==
+  // postTaxRentalCF (the annual identity is preserved). This is the stream the reinvest
+  // sleeve and Engine B both consume — the same-cash invariant now holds monthly.
+  const monthlyCFfrom = (loan: AmortizationResult, opex: ReturnType<typeof computeOpexAndTax>): number[] => {
+    const cf = new Array<number>(holdMonths + 1).fill(0);
+    for (let m = 1; m <= holdMonths; m++) {
+      const t = Math.ceil(m / 12);
+      const emiM = loan.monthly[m - 1]?.emi ?? 0;
+      const taxM = m % 12 === 0 ? opex.rows[t - 1]!.rentalTaxOrShield : 0;
+      cf[m] = (opex.grossRentMonthly[m] ?? 0) - (opex.cashOpexMonthly[m] ?? 0) - emiM - taxM;
+    }
+    return cf;
+  };
+
+  let opexResult = computeOpexAndTax(opexParams, buildOpexYears(firstLoan));
+  let opexRows = opexResult.rows;
   let reinvest = computeReinvest(
     input.rentalCashUse,
-    [0, ...opexRows.map((r) => r.postTaxRentalCF)],
+    monthlyCFfrom(firstLoan, opexResult),
     input.equityCagrPct,
   );
 
   // Second pass for PrepayLoan: feed rental prepay into the loan, then recompute.
   let holdLoan = firstLoan;
-  let reinvestPotByYear = reinvest.reinvestPotByYear;
+  let reinvestPotByMonth = reinvest.reinvestPotByMonth;
   let reinvestPotTerminal = reinvest.reinvestPot;
+  // Cost basis of the reinvest sleeve (Σ contributions), used for its equity LTCG at exit.
+  // ReinvestEquity/Pocket: reinvest.ts tracks it. PrepayLoan: the leftover sleeve basis is
+  // accumulated alongside its pot in the second pass below.
+  let reinvestContrib = reinvest.reinvestContrib;
   if (input.rentalCashUse === "PrepayLoan") {
     holdLoan = amortize({
       principal: holdLoanPrincipal,
@@ -219,26 +248,35 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
       extraPrincipalByYear: reinvest.prepayByYear,
       horizonYears: N,
     });
-    opexRows = computeOpexAndTax(opexParams, buildOpexYears(holdLoan));
-    reinvest = computeReinvest(
-      input.rentalCashUse,
-      [0, ...opexRows.map((r) => r.postTaxRentalCF)],
-      input.equityCagrPct,
-    );
+    opexResult = computeOpexAndTax(opexParams, buildOpexYears(holdLoan));
+    opexRows = opexResult.rows;
+    const cf = monthlyCFfrom(holdLoan, opexResult);
+    reinvest = computeReinvest(input.rentalCashUse, cf, input.equityCagrPct);
     // Positive rental cash that the loan could not absorb (prepay is capped at the
     // remaining balance, e.g. after payoff) is NOT dropped — it accrues in the equity
-    // sleeve at equityCagr, so PrepayLoan and ReinvestEquity stay comparable (T8).
-    const pot = new Array<number>(N + 1).fill(0);
+    // sleeve at equityCagr (monthly), so PrepayLoan and ReinvestEquity stay comparable
+    // (T8). Leftover for a year = year's surplus − principal actually prepaid; it is
+    // injected at the year-end month and compounds monthly thereafter.
+    const monthlyGrowth = Math.pow(1 + input.equityCagrPct, 1 / 12);
+    const pot = new Array<number>(holdMonths + 1).fill(0);
     let acc = 0;
-    for (let t = 1; t <= N; t++) {
-      const positive = Math.max(opexRows[t - 1]!.postTaxRentalCF, 0);
-      const applied = holdLoan.prepayAnnual[t] ?? 0;
-      const leftover = Math.max(positive - applied, 0);
-      acc = acc * (1 + input.equityCagrPct) + leftover;
-      pot[t] = acc;
+    let leftoverContrib = 0;
+    for (let m = 1; m <= holdMonths; m++) {
+      acc *= monthlyGrowth;
+      if (m % 12 === 0) {
+        const t = m / 12;
+        let surplus = 0;
+        for (let k = (t - 1) * 12 + 1; k <= t * 12; k++) surplus += Math.max(cf[k]!, 0);
+        const applied = holdLoan.prepayAnnual[t] ?? 0;
+        const leftover = Math.max(surplus - applied, 0);
+        acc += leftover;
+        leftoverContrib += leftover;
+      }
+      pot[m] = acc;
     }
-    reinvestPotByYear = pot;
+    reinvestPotByMonth = pot;
     reinvestPotTerminal = acc;
+    reinvestContrib = leftoverContrib;
   }
 
   // ---------------------------------------------------------------- §4.7 exit
@@ -252,6 +290,9 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     ltcgPropertyPct: input.ltcgPropertyPct,
     balanceEndFinal: holdLoan.balanceEnd[N] ?? 0,
     reinvestPot: reinvestPotTerminal,
+    reinvestContrib,
+    ltcgEquityPct: input.ltcgEquityPct,
+    equityLtcgExemptionAnnual: input.equityLtcgExemptionAnnual,
   });
 
   // ---------------------------------------------------------------- §4.9 Engine B stream
@@ -262,16 +303,16 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
   for (const r of constructionRows) {
     ownCashOut[r.month] = (ownCashOut[r.month] ?? 0) + r.ownPocketDraw + r.preEMI;
   }
-  // hold window: Engine B deploys the buyer's actual out-of-pocket cash. The net pocket
-  // each year is the negative carry = max(EMI + opex + tax − rent, 0); the EMI is ALREADY
-  // inside negCarry (postTaxRentalCF = NOI − EMI − tax), so it must NOT be added again —
-  // doing so double-counted it (see docs/AUDIT.md FINDING-1). SameCashSIP mirrors that full
-  // out-of-pocket; LumpsumOnly invests only the upfront lump(s) (t0 + construction draws).
+  // hold window: Engine B deploys the buyer's actual out-of-pocket cash, MONTHLY. The
+  // net pocket in a hold-month is the negative carry = max(EMI + opex + tax − rent, 0);
+  // the EMI is ALREADY inside negCarry (monthlyCF = rent − opex − EMI − tax), so it must
+  // NOT be added again. Surplus months go to the reinvest sleeve, not Engine B. SameCashSIP
+  // mirrors this full out-of-pocket; LumpsumOnly invests only the upfront lump(s).
   const sameCash = input.compareMode === "SameCashSIP";
   if (sameCash) {
-    for (let t = 1; t <= N; t++) {
-      const cal = offsetMonths + t * 12;
-      ownCashOut[cal] = (ownCashOut[cal] ?? 0) + (reinvest.negCarryByYear[t] ?? 0);
+    for (let m = 1; m <= holdMonths; m++) {
+      const cal = offsetMonths + m;
+      ownCashOut[cal] = (ownCashOut[cal] ?? 0) + (reinvest.negCarryByMonth[m] ?? 0);
     }
   }
 
@@ -286,21 +327,27 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
   const reTerminal = exit.reTerminal;
   const eqTerminal = equity.eqTerminal;
 
-  // Engine A dated cash flows for XIRR (per rentalCashUse — see reinvest.ts).
+  // Engine A dated cash flows for XIRR (per rentalCashUse — see reinvest.ts). Hold flows
+  // are now MONTHLY, dated on their true calendar month (no year-end lumping — audit B1).
+  const cfMonthly = monthlyCFfrom(holdLoan, opexResult);
   const aCashflows: DatedCashflow[] = [{ year: 0, amount: -totalCashAtT0 }];
   for (const r of constructionRows) {
     aCashflows.push({ year: r.month / 12, amount: -(r.ownPocketDraw + r.preEMI) });
   }
   const pocket = input.rentalCashUse === "Pocket";
-  for (let t = 1; t <= N; t++) {
-    const year = (offsetMonths + t * 12) / 12;
-    const cf = pocket ? opexRows[t - 1]!.postTaxRentalCF : -(reinvest.negCarryByYear[t] ?? 0);
+  for (let m = 1; m <= holdMonths; m++) {
+    const year = (offsetMonths + m) / 12;
+    // Pocket counts every net month (±) as it lands; otherwise only deficits are out of
+    // pocket (surplus is reinvested and returned at the terminal node).
+    const cf = pocket ? cfMonthly[m]! : -(reinvest.negCarryByMonth[m] ?? 0);
     aCashflows.push({ year, amount: cf });
   }
   const terminalYear = totalMonths / 12;
+  // Non-pocket terminal receives the sleeve NET of its equity LTCG (audit F1). Pocket
+  // counts surpluses as interim inflows, so it adds 0 here (and its sleeve LTCG is 0).
   aCashflows.push({
     year: terminalYear,
-    amount: exit.netSaleProceeds + (pocket ? 0 : reinvestPotTerminal),
+    amount: exit.netSaleProceeds + (pocket ? 0 : reinvestPotTerminal - exit.reinvestSleeveLtcg),
   });
 
   const bCashflows: DatedCashflow[] = ownCashOut.map((amt, m) => ({ year: m / 12, amount: -amt }));
@@ -394,7 +441,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     const o = opexRows[t - 1]!;
     const cal = offsetMonths + t * 12;
     const loanBalanceEnd = holdLoan.balanceEnd[t] ?? 0;
-    const reinvestPot = reinvestPotByYear[t] ?? 0;
+    const reinvestPot = reinvestPotByMonth[t * 12] ?? 0;
     const equityPot = equity.potByMonth[cal] ?? 0;
     const cumOwnCashOutA = cumOwnByMonth[cal] ?? 0;
     const cumContribB = equity.cumContribByMonth[cal] ?? 0;
@@ -414,7 +461,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
       principalPaid: holdLoan.principalPaid[t] ?? 0,
       loanBalanceEnd,
       prepayment: holdLoan.prepayAnnual[t] ?? 0,
-      marketRent: rent[t]!,
+      marketRent: rentAnnual[t]!,
       grossRentCollected: o.grossRent,
       societyCAM: o.camBase,
       ownerMaintenance: o.ownerMaintenance,
@@ -450,6 +497,7 @@ export function compute(input: Inputs, opts: ComputeOptions = {}): Outputs {
     exitGross: exit.exitGross,
     sellCosts: exit.sellCosts,
     ltcgProperty: exit.ltcg,
+    reinvestSleeveLtcg: exit.reinvestSleeveLtcg,
     loanPayoff: holdLoan.balanceEnd[N] ?? 0,
     netSaleProceeds: exit.netSaleProceeds,
     rows,

@@ -42,3 +42,28 @@ These corrections make the **test assertions** precise, but notice that every er
 That said, there's a real reason to fix them anyway: a test case is a contract, and if Claude Code computes 675,695 while the spec says 675,640, a developer can't tell whether their code is right or the spec is wrong. **Precise ground truth removes that ambiguity** — which matters more here than usual, because the construction-period and cash-conservation tests (T9, T14) have no tolerance and depend on the engine being trusted to the rupee.
 
 Want me to update PRD v3 in place with these corrected values and the clean intermediate steps, and tighten the loose tolerances on T3/T4/T5 to something like ±0.1% now that the targets are exact? I can also add the precise `1.08¹⁰ = 2.158925` and `1.06¹⁰ = 1.790848` constants inline so the arithmetic is fully traceable.
+
+---
+
+## SUPERSEDED — T3 rent path (2026-06-16, third audit pass)
+
+The T3 values recomputed above (504,918.62 / 675,695.02 / 814,151.52 / 943,824.75) belong to
+the **original smooth yearly-compounding** rent model (`rent_annual(t)=rent_annual(t-1)·(1+g)`,
+with a year-1 step). That model was **replaced** in the commit *"11/12-month rent renewal cadence
+toggle"* (`3135980`) by a **per-lease step** model: rent is flat within a lease term and steps
+once per renewal, so there is **no year-1 escalation**. Under the per-lease model (term=12) the
+authoritative golden values are:
+
+| year | smooth (old, this doc) | per-lease (current, oracle) |
+|---|---|---|
+| 1 | 385,200.00 | **360,000.00** |
+| 5 | 504,918.62 | **471,886.56** |
+| 10 | 675,695.02 | **637,448.13** |
+| 15 | 814,151.52 | **790,438.37** |
+| 20 | 943,824.75 | **916,334.70** |
+
+The per-lease numbers are what `reference/oracle.py`, the engine, and the §7/T3 tests now assert.
+The decision (with the product owner, 2026-06-16) was to **keep the per-lease model** — it is the
+realistic behaviour of Indian 11/12-month leases — and correct the PRD §4.3 formula, the §7 T3
+targets, and the [v4] note accordingly (they had silently drifted). T4/T5 corrections above are
+unaffected (structure & land are unchanged by the rent model).

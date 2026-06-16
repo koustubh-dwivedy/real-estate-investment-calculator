@@ -24,17 +24,17 @@ const CASES: { name: string; inputs: Inputs; expect: Snap }[] = [
   {
     name: "Bangalore apartment (mid-rise)",
     inputs: getDefaults({ geography: "Bangalore", assetType: "MidRiseSociety", acquisitionType: "ReadyApartment" }),
-    expect: { reTerminal: 33_719_438, eqTerminal: 84_149_109, gap: -50_429_671, netSaleProceeds: 33_719_438, reXirr: 0.038651, eqXirr: 0.103053, breakevenLandCagr: 0.126114, y20propGross: 37_969_328 },
+    expect: { reTerminal: 33_719_438, eqTerminal: 86_406_862, gap: -52_687_424, netSaleProceeds: 33_719_438, reXirr: 0.037792, eqXirr: 0.103075, breakevenLandCagr: 0.127764, y20propGross: 37_969_328 },
   },
   {
     name: "Mumbai apartment (high-rise, redevelopment)",
     inputs: getDefaults({ geography: "Mumbai", assetType: "HighRiseSociety", acquisitionType: "ReadyApartment" }),
-    expect: { reTerminal: 30_464_891, eqTerminal: 85_950_492, gap: -55_485_601, netSaleProceeds: 30_464_891, reXirr: 0.028644, eqXirr: 0.103034, breakevenLandCagr: 0.105078, y20propGross: 34_056_555 },
+    expect: { reTerminal: 30_464_891, eqTerminal: 88_246_746, gap: -57_781_855, netSaleProceeds: 30_464_891, reXirr: 0.027937, eqXirr: 0.103056, breakevenLandCagr: 0.106695, y20propGross: 34_056_555 },
   },
   {
     name: "Bangalore plot + self-build",
     inputs: { ...getDefaults({ geography: "Bangalore", assetType: "PlottedDevelopmentVilla", acquisitionType: "PlotSelfBuild" }), constructionLoanAmount: 3_000_000 },
-    expect: { reTerminal: 24_887_947, eqTerminal: 78_648_011, gap: -53_760_063, netSaleProceeds: 24_887_947, reXirr: 0.025609, eqXirr: 0.103326, breakevenLandCagr: 0.153932, y20propGross: 28_676_320 },
+    expect: { reTerminal: 24_887_947, eqTerminal: 80_298_252, gap: -55_410_305, netSaleProceeds: 24_887_947, reXirr: 0.025099, eqXirr: 0.103331, breakevenLandCagr: 0.155362, y20propGross: 28_676_320 },
   },
 ];
 

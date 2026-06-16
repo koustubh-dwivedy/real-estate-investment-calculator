@@ -4,23 +4,23 @@
  * Y21–30 == Y11–20 the first 20 years are byte-for-byte unchanged.
  */
 import { describe, it, expect } from "vitest";
-import { rentPath } from "../rent";
+import { rentMonthlyPath, annualizeRent, type RentGrowth } from "../rent";
 import { landRate, landValue, type LandParams } from "../valueStack";
 import { compute } from "../compute";
 import { getDefaults } from "../../defaults";
 
+/** Realized annual rent path (per-term, term=12 by default). */
+const annualRent = (g: RentGrowth, years: number, term = 12) =>
+  annualizeRent(rentMonthlyPath(30_000, g, years * 12, term), years);
+
 describe("T16 — rent & land over 30 years with explicit Y21–30", () => {
-  const rp = rentPath(
-    30_000,
-    { y1_5: 0.07, y6_10: 0.06, y11_20: 0.05, y21_30: 0.04, cohortDrag: 0.02 },
-    30,
-  );
+  const rp = annualRent({ y1_5: 0.07, y6_10: 0.06, y11_20: 0.05, y21_30: 0.04, cohortDrag: 0.02 }, 30);
   it("rent_annual(20) is unchanged from T3 (Y21–30 doesn't affect t≤20)", () => {
-    expect(rp[20]).toBeCloseTo(943_824.7453, 2);
+    expect(rp[20]).toBeCloseTo(916_334.7041, 2);
   });
-  it("rent_annual(25) = 1,042,058.78 ; rent_annual(30) = 1,150,517.10", () => {
-    expect(rp[25]).toBeCloseTo(1_042_058.7828, 2);
-    expect(rp[30]).toBeCloseTo(1_150_517.0979, 2);
+  it("rent_annual(25) = 1,021,626.26 ; rent_annual(30) = 1,127,957.94", () => {
+    expect(rp[25]).toBeCloseTo(1_021_626.2577, 2);
+    expect(rp[30]).toBeCloseTo(1_127_957.9391, 2);
   });
 
   const land: LandParams = {
@@ -37,10 +37,10 @@ describe("T16 — rent & land over 30 years with explicit Y21–30", () => {
 });
 
 describe("T16 — backward compatibility (Y21–30 == Y11–20)", () => {
-  it("rentPath over 30y equals rentPath over 20y for the first 20 years", () => {
+  it("rent path over 30y equals rent path over 20y for the first 20 years", () => {
     const g = { y1_5: 0.07, y6_10: 0.06, y11_20: 0.05, cohortDrag: 0.02 }; // no y21_30
-    const r20 = rentPath(30_000, g, 20);
-    const r30 = rentPath(30_000, g, 30);
+    const r20 = annualRent(g, 20);
+    const r30 = annualRent(g, 30);
     for (let t = 0; t <= 20; t++) expect(r30[t]).toBeCloseTo(r20[t]!, 6);
   });
 
@@ -95,7 +95,7 @@ describe("T16 — 30-year compute() holds all invariants", () => {
 
   it("RE_terminal reconciles to the exit waterfall + reinvest pot; breakeven finite", () => {
     const finalRow = out.rows[out.rows.length - 1]!;
-    expect(out.reTerminal).toBeCloseTo(out.netSaleProceeds + finalRow.reinvestPot, 2);
+    expect(out.reTerminal).toBeCloseTo(out.netSaleProceeds + finalRow.reinvestPot - out.reinvestSleeveLtcg, 2);
     expect(Number.isFinite(out.breakevenLandCagr)).toBe(true);
   });
 });

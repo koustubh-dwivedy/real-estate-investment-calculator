@@ -1,37 +1,34 @@
 /**
- * T17 — 11-month rent renewal cadence. The per-renewal escalation compounds
- * 12/renewalMonths times per year. Golden values from reference/oracle.py (T17).
- * At renewalMonths = 12 (or omitted) the path reduces EXACTLY to T3.
+ * T17 — lease-term (agreement) rent renewal. Rent is flat within a term and steps once
+ * per renewal; an 11-month term renews sooner than a 12-month term, so steps land earlier
+ * on the calendar and rent accrues faster. Golden values from reference/oracle.py (T17).
  */
 import { describe, it, expect } from "vitest";
-import { rentPath } from "../rent";
+import { rentMonthlyPath, annualizeRent, type RentGrowth } from "../rent";
 import { compute } from "../compute";
 import { getDefaults } from "../../defaults";
 
-const G = (renewalMonths?: number) => ({
-  y1_5: 0.07,
-  y6_10: 0.06,
-  y11_20: 0.05,
-  cohortDrag: 0.02,
-  ...(renewalMonths ? { renewalMonths } : {}),
+const G: RentGrowth = { y1_5: 0.07, y6_10: 0.06, y11_20: 0.05, cohortDrag: 0.02 };
+const annualFor = (term: number) => annualizeRent(rentMonthlyPath(30_000, G, 240, term), 20);
+
+describe("T17 — 11-month term golden values", () => {
+  const r = annualFor(11);
+  it("rent_annual(5) = 485,649.92", () => expect(r[5]).toBeCloseTo(485_649.9217, 2));
+  it("rent_annual(10) = 669,320.53", () => expect(r[10]).toBeCloseTo(669_320.5347, 2));
+  it("rent_annual(20) = 980,052.04", () => expect(r[20]).toBeCloseTo(980_052.0378, 2));
 });
 
-describe("T17 — 11-month cadence golden values", () => {
-  const r = rentPath(30_000, G(11));
-  it("rent_annual(5) = 520,688.10", () => expect(r[5]).toBeCloseTo(520_688.0994, 2));
-  it("rent_annual(10) = 715,500.01", () => expect(r[10]).toBeCloseTo(715_500.0099, 2));
-  it("rent_annual(20) = 1,030,255.38", () => expect(r[20]).toBeCloseTo(1_030_255.3825, 2));
-});
-
-describe("T17 — backward compatibility (12 months == plain annual == T3)", () => {
-  it("renewalMonths 12 and omitted both reproduce T3 exactly", () => {
-    const r12 = rentPath(30_000, G(12));
-    const rOmit = rentPath(30_000, G());
-    for (const r of [r12, rOmit]) {
-      expect(r[5]).toBeCloseTo(504_918.6231, 2);
-      expect(r[10]).toBeCloseTo(675_695.016, 2);
-      expect(r[20]).toBeCloseTo(943_824.7453, 2);
-    }
+describe("T17 — 12-month term (== T3 per-term baseline)", () => {
+  it("reproduces the T3 per-term annual path", () => {
+    const r12 = annualFor(12);
+    expect(r12[5]).toBeCloseTo(471_886.5636, 2);
+    expect(r12[10]).toBeCloseTo(637_448.1283, 2);
+    expect(r12[20]).toBeCloseTo(916_334.7041, 2);
+  });
+  it("an 11-month term is always >= a 12-month term, year by year", () => {
+    const r11 = annualFor(11);
+    const r12 = annualFor(12);
+    for (let t = 1; t <= 20; t++) expect(r11[t]!).toBeGreaterThanOrEqual(r12[t]! - 1e-6);
   });
 });
 
@@ -40,12 +37,11 @@ describe("T17 — compute() effect & invariants", () => {
   const out12 = compute({ ...base, rentAgreementMonths: 12 });
   const out11 = compute({ ...base, rentAgreementMonths: 11 });
 
-  it("11-month cadence raises market rent and post-tax cash every year", () => {
+  it("11-month term raises market rent every year", () => {
     for (let t = 1; t <= 20; t++) {
       const r11 = out11.rows.find((r) => r.year === t)!;
       const r12 = out12.rows.find((r) => r.year === t)!;
-      expect(r11.marketRent).toBeGreaterThan(r12.marketRent);
-      expect(r11.postTaxRentalCF).toBeGreaterThan(r12.postTaxRentalCF);
+      expect(r11.marketRent).toBeGreaterThanOrEqual(r12.marketRent - 1e-6);
     }
   });
 
@@ -63,10 +59,13 @@ describe("T17 — compute() effect & invariants", () => {
   });
 
   it("year-20 market rent matches the standalone rent path (single source of truth)", () => {
-    const standalone = rentPath(base.rentPerMonth0, {
-      y1_5: base.rentGrowthY1_5, y6_10: base.rentGrowthY6_10, y11_20: base.rentGrowthY11_20,
-      cohortDrag: base.cohortDragPct, renewalMonths: 11,
-    });
+    const standalone = annualizeRent(
+      rentMonthlyPath(base.rentPerMonth0, {
+        y1_5: base.rentGrowthY1_5, y6_10: base.rentGrowthY6_10, y11_20: base.rentGrowthY11_20,
+        cohortDrag: base.cohortDragPct,
+      }, 240, 11),
+      20,
+    );
     expect(out11.rows.find((r) => r.year === 20)!.marketRent).toBeCloseTo(standalone[20]!, 2);
   });
 
@@ -78,6 +77,6 @@ describe("T17 — compute() effect & invariants", () => {
       expect(Math.abs(r.cashConservationCheck)).toBeLessThan(1);
     }
     const finalRow = o.rows[o.rows.length - 1]!;
-    expect(o.reTerminal).toBeCloseTo(o.netSaleProceeds + finalRow.reinvestPot, 2);
+    expect(o.reTerminal).toBeCloseTo(o.netSaleProceeds + finalRow.reinvestPot - o.reinvestSleeveLtcg, 2);
   });
 });

@@ -1,28 +1,34 @@
 /**
  * T3 (PRD §7) — rent path + cohort drag. Golden values from reference/oracle.py.
+ * Per-term model: rent is flat within an agreement term and steps once per renewal.
  */
 import { describe, it, expect } from "vitest";
-import { rentPath, drag, gMarket } from "../rent";
+import { rentMonthlyPath, annualizeRent, drag, gMarket } from "../rent";
 
 const G = { y1_5: 0.07, y6_10: 0.06, y11_20: 0.05, cohortDrag: 0.02 };
 
-describe("T3 — rent path + drag", () => {
-  const path = rentPath(30_000, G); // annual rent_annual(0) = 360,000
+describe("T3 — rent path + drag (per-term, term=12)", () => {
+  const monthly = rentMonthlyPath(30_000, G, 240, 12); // 20y, 12-month term
+  const annual = annualizeRent(monthly, 20);
 
-  it("rent_annual(5) = 504,918.62", () => {
-    expect(path[5]).toBeCloseTo(504_918.62, 2);
+  it("rent_annual(1) = 360,000 (flat through the first term)", () => {
+    expect(annual[1]).toBeCloseTo(360_000, 2);
   });
-  it("rent_annual(10) = 675,695.02", () => {
-    expect(path[10]).toBeCloseTo(675_695.02, 2);
+  it("rent_annual(5) = 471,886.56", () => {
+    expect(annual[5]).toBeCloseTo(471_886.5636, 2);
   });
-  it("rent_annual(15) = 814,151.52", () => {
-    expect(path[15]).toBeCloseTo(814_151.52, 2);
+  it("rent_annual(10) = 637,448.13", () => {
+    expect(annual[10]).toBeCloseTo(637_448.1283, 2);
   });
-  it("rent_annual(20) = 943,824.75", () => {
-    expect(path[20]).toBeCloseTo(943_824.75, 2);
+  it("rent_annual(15) = 790,438.37", () => {
+    expect(annual[15]).toBeCloseTo(790_438.3652, 2);
   });
-  it("rent_annual(0) = 360,000", () => {
-    expect(path[0]).toBe(360_000);
+  it("rent_annual(20) = 916,334.70", () => {
+    expect(annual[20]).toBeCloseTo(916_334.7041, 2);
+  });
+  it("monthly rent is flat within the first 12-month term", () => {
+    for (let m = 1; m <= 12; m++) expect(monthly[m]).toBe(30_000);
+    expect(monthly[13]).toBeCloseTo(30_000 * 1.07, 6); // first step at month 13
   });
 });
 

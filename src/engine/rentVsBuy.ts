@@ -8,12 +8,12 @@
  *    cash, then each year pays rent + renewal cost and invests the leftover of the
  *    buyer's budget into equity. Terminal = equity portfolio + deposit returned.
  *
- * Reuses compute() (buyer), rentPath() (rent escalation), computeEquityBenchmark()
+ * Reuses compute() (buyer), rentMonthlyPath() (rent escalation), computeEquityBenchmark()
  * (renter portfolio) and bisect() (break-even). No new financial math.
  */
 import type { Inputs } from "../types";
 import { compute } from "./compute";
-import { rentPath } from "./rent";
+import { rentMonthlyPath, annualizeRent } from "./rent";
 import { computeEquityBenchmark } from "./equityBenchmark";
 import { bisect } from "./numerics";
 
@@ -61,13 +61,19 @@ function renterSide(
 ): { terminal: number; rows?: RentVsBuyYear[] } {
   const { t0, annual, N, buyerNetWorthByYear } = buyer;
   const deposit = altRent0 * inputs.securityDepositMonths;
-  // alt-rent annual path (₹/year): your tenant rent escalates at altRentGrowthPct on
-  // the same 11/12-month renewal cadence as the property.
-  const rentYear = rentPath(altRent0, {
-    y1_5: inputs.altRentGrowthPct, y6_10: inputs.altRentGrowthPct,
-    y11_20: inputs.altRentGrowthPct, y21_30: inputs.altRentGrowthPct, cohortDrag: 0,
-    renewalMonths: inputs.rentAgreementMonths,
-  }, N);
+  // alt-rent annual path (₹/year): your tenant rent steps at altRentGrowthPct per
+  // agreement term (the same 11/12-month renewal cadence as the property), flat between
+  // renewals. Realized annual = Σ of the 12 monthly rents.
+  const altMonthly = rentMonthlyPath(
+    altRent0,
+    {
+      y1_5: inputs.altRentGrowthPct, y6_10: inputs.altRentGrowthPct,
+      y11_20: inputs.altRentGrowthPct, y21_30: inputs.altRentGrowthPct, cohortDrag: 0,
+    },
+    N * 12,
+    inputs.rentAgreementMonths,
+  );
+  const rentYear = annualizeRent(altMonthly, N);
 
   // monthly contribution stream: t0 lump (minus deposit), then each year's leftover/12
   const ownCashOutByMonth = new Array<number>(N * 12 + 1).fill(0);

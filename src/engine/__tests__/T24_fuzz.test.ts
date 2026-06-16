@@ -67,7 +67,11 @@ describe("T24 — fuzz invariants over many random scenarios", () => {
         expect(Math.abs(row.cashConservationCheck), `${tag}: col37 y${row.year}`).toBeLessThan(1);
       }
       const last = o.rows[o.rows.length - 1]!;
-      expect(o.reTerminal, `${tag}: exit`).toBeCloseTo(o.netSaleProceeds + last.reinvestPot, 1);
+      // Exit waterfall: net proceeds + gross reinvest pot − the pot's equity LTCG (F1).
+      expect(o.reTerminal, `${tag}: exit`).toBeCloseTo(
+        o.netSaleProceeds + last.reinvestPot - o.reinvestSleeveLtcg,
+        1,
+      );
       expect(o.gap, `${tag}: gap`).toBeCloseTo(o.reTerminal - o.eqTerminal, 1);
       expect(o.realReTerminal, `${tag}: real`).toBeCloseTo(o.reTerminal / Math.pow(1 + inp.cpiPct, inp.holdYears), 1);
     }

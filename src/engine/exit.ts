@@ -7,7 +7,13 @@
  *   capGain         = exitGross - sellCosts - costBasis
  *   ltcg            = max(capGain, 0) * ltcgPropertyPct
  *   netSaleProceeds = exitGross - sellCosts - ltcg - balanceEnd(N)
- *   RE_terminal     = netSaleProceeds + reinvestPot
+ *   RE_terminal     = netSaleProceeds + reinvestPot - reinvestSleeveLtcg
+ *
+ * The reinvest sleeve (ReinvestEquity / PrepayLoan leftover) is the SAME equity index as
+ * Engine B, so at liquidation it pays equity LTCG on its gain with the ₹1.25L exemption,
+ * exactly as Engine B does (§4.9). This keeps the two equity pools symmetric (audit F1).
+ * Pocket mode has no growth (gain 0) ⇒ no sleeve LTCG. Mark-to-market per-year reinvestPot
+ * columns stay gross; only this terminal liquidation nets the tax.
  *
  * No indexation (post-2024): basis affects the gain only, not inflation indexing.
  */
@@ -23,7 +29,14 @@ export interface ExitParams {
   ltcgPropertyPct: number;
   /** Outstanding loan balance at exit. */
   balanceEndFinal: number;
+  /** Terminal (gross) value of the reinvest sleeve. */
   reinvestPot: number;
+  /** Cost basis of the reinvest sleeve (Σ contributions) — for its equity LTCG. */
+  reinvestContrib: number;
+  /** Equity LTCG rate applied to the sleeve gain (same as Engine B). */
+  ltcgEquityPct: number;
+  /** Annual equity LTCG exemption (₹1.25L) applied once to the sleeve gain at exit. */
+  equityLtcgExemptionAnnual: number;
 }
 
 export interface ExitResult {
@@ -33,6 +46,8 @@ export interface ExitResult {
   capGain: number;
   ltcg: number;
   netSaleProceeds: number;
+  /** Equity LTCG paid on the reinvest sleeve's gain at exit (0 for Pocket / empty pot). */
+  reinvestSleeveLtcg: number;
   reTerminal: number;
 }
 
@@ -43,6 +58,9 @@ export function computeExit(p: ExitParams): ExitResult {
   const capGain = exitGross - sellCosts - costBasis;
   const ltcg = Math.max(capGain, 0) * p.ltcgPropertyPct;
   const netSaleProceeds = exitGross - sellCosts - ltcg - p.balanceEndFinal;
-  const reTerminal = netSaleProceeds + p.reinvestPot;
-  return { exitGross, sellCosts, costBasis, capGain, ltcg, netSaleProceeds, reTerminal };
+  // Equity LTCG on the reinvest sleeve (its gain above the exemption), mirroring Engine B.
+  const sleeveGain = p.reinvestPot - p.reinvestContrib;
+  const reinvestSleeveLtcg = Math.max(sleeveGain - p.equityLtcgExemptionAnnual, 0) * p.ltcgEquityPct;
+  const reTerminal = netSaleProceeds + p.reinvestPot - reinvestSleeveLtcg;
+  return { exitGross, sellCosts, costBasis, capGain, ltcg, netSaleProceeds, reinvestSleeveLtcg, reTerminal };
 }

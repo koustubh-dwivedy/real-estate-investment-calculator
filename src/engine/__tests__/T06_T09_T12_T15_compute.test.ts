@@ -36,7 +36,7 @@ describe("T6 — BLR mid-rise reconciliation", () => {
 
   it("RE_terminal reconciles to the exit waterfall + reinvest pot", () => {
     const finalRow = out.rows[out.rows.length - 1]!;
-    expect(out.reTerminal).toBeCloseTo(out.netSaleProceeds + finalRow.reinvestPot, 2);
+    expect(out.reTerminal).toBeCloseTo(out.netSaleProceeds + finalRow.reinvestPot - out.reinvestSleeveLtcg, 2);
   });
 
   it("XIRRs are finite and reasonable", () => {

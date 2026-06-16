@@ -33,9 +33,10 @@ const baseParams = (overrides: Partial<OpexTaxParams> = {}): OpexTaxParams => ({
 const years = (): OpexTaxYearInputs[] =>
   Array.from({ length: 10 }, (_, i) => {
     const t = i + 1;
+    const annualRent = 600_000 * Math.pow(1.06, t);
     return {
       t,
-      rentAnnual: 600_000 * Math.pow(1.06, t),
+      rentMonths: Array.from({ length: 12 }, () => annualRent / 12), // flat across the year
       age: t,
       propValueClean: 20_000_000 * Math.pow(1.06, t),
       interestPaid: 700_000, // high, fixed → drives early losses
@@ -44,8 +45,8 @@ const years = (): OpexTaxYearInputs[] =>
   });
 
 describe("T11 — maintenance-mode divergence (no double-count)", () => {
-  const tenant = computeOpexAndTax(baseParams({ maintenanceMode: "TenantPaysCAM" }), years());
-  const owner = computeOpexAndTax(baseParams({ maintenanceMode: "OwnerBearsAll" }), years());
+  const tenant = computeOpexAndTax(baseParams({ maintenanceMode: "TenantPaysCAM" }), years()).rows;
+  const owner = computeOpexAndTax(baseParams({ maintenanceMode: "OwnerBearsAll" }), years()).rows;
 
   it("OwnerBearsAll lowers NOI/postTaxRentalCF by exactly the CAM added (camBase×ageMaintMult)", () => {
     owner.forEach((o, i) => {
@@ -64,8 +65,8 @@ describe("T11 — maintenance-mode divergence (no double-count)", () => {
 });
 
 describe("T7 — regime divergence (Old > New by stranded shields)", () => {
-  const old = computeOpexAndTax(baseParams({ taxRegime: "India_Old" }), years());
-  const neu = computeOpexAndTax(baseParams({ taxRegime: "India_New" }), years());
+  const old = computeOpexAndTax(baseParams({ taxRegime: "India_Old" }), years()).rows;
+  const neu = computeOpexAndTax(baseParams({ taxRegime: "India_New" }), years()).rows;
 
   it("loss-making early profile produces shields under Old, none under New", () => {
     // taxableHP is negative early (high interest vs rent after 30% std deduction)

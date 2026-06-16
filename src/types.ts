@@ -41,16 +41,18 @@ export interface Inputs {
   purchasePriceAllIn: number;
 
   // ---- B. Rent & rent growth ----
+  // NOTE: the rentGrowth* bands are the step applied PER AGREEMENT TERM (not per year):
+  // rent is flat within a lease and jumps by this fraction at each renewal. See rent.ts.
   rentPerMonth0: number;
   rentGrowthY1_5: number;
   rentGrowthY6_10: number;
   rentGrowthY11_20: number;
-  /** Years 21–30 rent growth (30-year horizon); defaults to rentGrowthY11_20. */
+  /** Years 21–30 rent step per term (30-year horizon); defaults to rentGrowthY11_20. */
   rentGrowthY21_30: number;
   cohortDragPct: number;
   vacancyPct: number;
   reLetBrokerageMonths: number;
-  /** Lease renewal cadence in months (11 common in India, or 12). See rent.ts. */
+  /** Lease term in months (11 common in India, or 12); rent steps once per term. */
   rentAgreementMonths: number;
   usageMode: UsageMode;
 
@@ -209,6 +211,8 @@ export interface Outputs {
   exitGross: number;
   sellCosts: number;
   ltcgProperty: number;
+  /** Equity LTCG paid on the reinvest sleeve at exit (0 for Pocket / empty pot). §4.7 F1. */
+  reinvestSleeveLtcg: number;
   loanPayoff: number;
   netSaleProceeds: number;
   rows: PeriodRow[];

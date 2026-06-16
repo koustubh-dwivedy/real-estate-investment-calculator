@@ -114,7 +114,7 @@ export default function RentVsBuy({ inputs, onChange, mode }: Props) {
           </span>
         </div>
         <div className="mt-1 text-[10px] text-slate-400">
-          Escalates at the rent growth below, on your {inputs.rentAgreementMonths}-month renewal cadence.
+          Steps by the rent-step % below at each {inputs.rentAgreementMonths}-month renewal (flat in between).
           The flat's <b>let-out</b> rent (₹{Math.round(inputs.rentPerMonth0).toLocaleString("en-IN")}/mo, section B) is the income if you rent it OUT — not used here.
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2">

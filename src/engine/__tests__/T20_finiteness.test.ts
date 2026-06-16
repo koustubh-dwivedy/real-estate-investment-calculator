@@ -42,7 +42,10 @@ function assertWellFormed(inp: Inputs, out: Outputs, label: string) {
     expect(Math.abs(r.cashConservationCheck), `${label}: col37 y${r.year}`).toBeLessThan(1);
   }
   const finalRow = out.rows[out.rows.length - 1]!;
-  expect(out.reTerminal, `${label}: exit waterfall`).toBeCloseTo(out.netSaleProceeds + finalRow.reinvestPot, 1);
+  expect(out.reTerminal, `${label}: exit waterfall`).toBeCloseTo(
+    out.netSaleProceeds + finalRow.reinvestPot - out.reinvestSleeveLtcg,
+    1,
+  );
   expect(out.gap, `${label}: gap`).toBeCloseTo(out.reTerminal - out.eqTerminal, 1);
   expect(out.realReTerminal, `${label}: real`).toBeCloseTo(out.reTerminal / Math.pow(1 + inp.cpiPct, inp.holdYears), 1);
 }

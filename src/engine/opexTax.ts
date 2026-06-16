@@ -50,8 +50,12 @@ export interface OpexTaxParams {
 export interface OpexTaxYearInputs {
   /** Hold-year t (1..N). */
   t: number;
-  /** Realized market rent_annual(t) (0 during construction window). */
-  rentAnnual: number;
+  /**
+   * The 12 monthly market rents for this hold-year (index 0..11). The realized annual
+   * rent is their sum; monthly cash rent is derived from each entry (0 during the
+   * construction window).
+   */
+  rentMonths: number[];
   /** Structure age at t (for maintenance age-acceleration). */
   age: number;
   /** Clean property value at t (for major-repair reserve & self-occupied maint). */
@@ -78,6 +82,24 @@ export interface OpexTaxRow {
   /** Carry-forward loss balance after this year (old regime only). */
   carryForwardLossBalance: number;
   postTaxRentalCF: number;
+  /**
+   * The year's 12 monthly cash legs (index 0..11), hold-month order. Each is the
+   * owner's net rental cash for that month BEFORE the loan EMI and BEFORE the annual
+   * tax settlement: grossRentMonth − cashOpexMonth. The tax settlement (rentalTaxOrShield)
+   * is a single annual event the caller drops into the year's last month; the EMI is
+   * added by the caller from the monthly loan schedule. Σ(monthlyCash) − emiAnnual −
+   * rentalTaxOrShield = postTaxRentalCF (the annual identity is preserved).
+   */
+  monthlyCash: number[];
+}
+
+export interface OpexTaxResult {
+  /** Per-hold-year rows (§6A table + annual tax). */
+  rows: OpexTaxRow[];
+  /** Monthly cash opex, hold-indexed 1..N*12 (index 0 unused). */
+  cashOpexMonthly: number[];
+  /** Monthly gross rent, hold-indexed 1..N*12 (index 0 unused). */
+  grossRentMonthly: number[];
 }
 
 interface CarryLot {
@@ -97,19 +119,25 @@ const CARRY_FORWARD_YEARS = 8;
 export function computeOpexAndTax(
   params: OpexTaxParams,
   years: OpexTaxYearInputs[],
-): OpexTaxRow[] {
+): OpexTaxResult {
   const rows: OpexTaxRow[] = [];
+  const cashOpexMonthly: number[] = [0];
+  const grossRentMonthly: number[] = [0];
   let carryLots: CarryLot[] = [];
   const letOut = params.usageMode === "LetOut";
 
   for (const y of years) {
-    const { t, rentAnnual, age, propValueClean, interestPaid, emiAnnual } = y;
+    const { t, rentMonths, age, propValueClean, interestPaid, emiAnnual } = y;
+    const rentAnnual = rentMonths.reduce((s, r) => s + (r ?? 0), 0);
 
     // --- gross rent (let-out only) ---
     const reLetFrac = params.reLetBrokerageMonths / 36;
     const grossRent = letOut
       ? rentAnnual * (1 - params.vacancyPct) - reLetFrac * rentAnnual
       : 0;
+    // Monthly gross rent: each month's market rent net of vacancy, less the brokerage
+    // amortization spread evenly across the year. Σ over the year == grossRent above.
+    const brokerageMonthly = letOut ? (reLetFrac * rentAnnual) / 12 : 0;
 
     // --- maintenance & charges (all CASH-only; NEVER deductible) ---
     const ageMaintMult = Math.pow(1 + params.maintenanceAgeAccelPct, age);
@@ -198,6 +226,19 @@ export function computeOpexAndTax(
     const carryForwardLossBalance = carryLots.reduce((s, lot) => s + lot.amount, 0);
     const postTaxRentalCF = noi - emiAnnual - rentalTaxOrShield;
 
+    // --- monthly cash legs ---
+    // Cash opex is spread evenly across the 12 months EXCEPT the lumpy interior refresh,
+    // which lands in a single month (the year's last). Σ(monthly opex) == opex.
+    const smoothOpex = opex - interiorRefresh;
+    const monthlyCash: number[] = new Array<number>(12).fill(0);
+    for (let k = 0; k < 12; k++) {
+      const rentCashK = letOut ? (rentMonths[k] ?? 0) * (1 - params.vacancyPct) - brokerageMonthly : 0;
+      const opexK = smoothOpex / 12 + (k === 11 ? interiorRefresh : 0);
+      grossRentMonthly.push(rentCashK);
+      cashOpexMonthly.push(opexK);
+      monthlyCash[k] = rentCashK - opexK; // pre-EMI, pre-tax owner net for this month
+    }
+
     rows.push({
       grossRent,
       camBase,
@@ -212,8 +253,9 @@ export function computeOpexAndTax(
       rentalTaxOrShield,
       carryForwardLossBalance,
       postTaxRentalCF,
+      monthlyCash,
     });
   }
 
-  return rows;
+  return { rows, cashOpexMonthly, grossRentMonthly };
 }

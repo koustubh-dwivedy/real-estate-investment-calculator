@@ -4,7 +4,7 @@
 >
 > **[v4] Plot financing — separate land + construction loans (post-v3 fix).** A plot self-build is financed by a **land loan** (`landLoanAmount` @ `plotLoanRatePct`) plus a **construction loan** (`constructionLoanAmount` @ `constructionLoanRatePct`), not the apartment single loan. The apartment fields `loanAmount` / `loanRatePct` / `loanTenureYears` **do not apply** to plots (UI hides them). During the build, each loan accrues its own interest-only pre-EMI; at completion the combined principal amortises over `compositeLoanTenureYears` at the **principal-weighted blend** of the two rates. The t0 down-payment uses `purchasePriceAllIn − landLoanAmount`. **Note:** loan *rate* moves financing cost → cash flows, the RE-vs-equity gap, and XIRR; it barely moves `RE_terminal` once the loan fully amortises. Guarded by tests **T18**.
 >
-> **[v4] Rent renewal cadence (post-v3 enhancement).** A selectable **`rentAgreementMonths`** (11 or 12; default 12) models the India-typical 11-month lease. Escalation is applied per renewal, so it compounds `12/rentAgreementMonths` times per calendar year: `rent_annual(t) = rent_annual(t−1) · (1 + g_real(t))^(12/rentAgreementMonths)` (§4.3). At 12 → exponent 1 (plain annual escalation, all golden values unchanged); at 11 → rent grows ~+3%/+6%/+9% by years 5/10/20. Occupancy is unchanged (this is *not* a months-collected haircut). Golden values **T17** in `reference/oracle.py`.
+> **[v4 corrected] Rent renewal cadence (post-v3 enhancement).** A selectable **`rentAgreementMonths`** (11 or 12; default 11) models the India-typical lease. The implementation uses a **per-lease step** model, NOT the smooth yearly compounding of the original §4.3: rent is **flat within a lease term and jumps once at each renewal**, the step being `1 + g_real(y)` where `y = ceil((m−1)/12)` is the hold-year the expiring lease ran in (§4.3, corrected above). An 11-month term renews more often than 12 (~21.8 vs 20 renewals over 20 years), so rent grows faster. **Correction to the as-shipped v4 note:** that note claimed the step compounds `(1+g)^(12/rentAgreementMonths)` per calendar year and that "at term=12 all golden values are unchanged." That is **false** — the per-lease model removes the year-1 escalation, so even at term=12 the default rent path differs from the pre-v4 numbers (e.g. `rent_annual(5)` is 471,886.56, not 504,918.62). The §7 **T3** (term=12) and **T17** (term=11) golden values in `reference/oracle.py` reflect the per-lease model; T3 above has been updated to match. Occupancy is unchanged (this is *not* a months-collected haircut).
 >
 > **[v4] 30-year horizon (post-v3 enhancement).** The hold horizon is selectable **20 or 30 years** (`holdYears` ∈ {20, 30}; default 20). For 30-year holds two new rate bands extend the growth schedule: **`rentGrowthY21_30`** (§4.3) and **`landCagrY21_30`** (§4.5a), each **defaulting to the Y11–20 value** so a 30-year run with untouched inputs simply extrapolates the Y11–20 trend; lower them to model later-decade deceleration. `gMarket(t)` returns `y21_30` for `21≤t≤30`; `landRate(t)` multiplies by `(1+landCagrY21_30)^max(t−20,0)`. All other stages already scale with `holdYears` (loan pays off at year 20 → years 21–30 carry full rental cash; Engine B simply stops receiving EMI after year 20; the structure floors at salvage ~year 26; `redevEligibleAgeYears=30` triggers the redevelopment option at year 30). Golden values **T16** (`reference/oracle.py`) cover the 30-year path; all §7 T1–T15 values are **unchanged** (the new bands don't affect t ≤ 20).
 >
@@ -146,14 +146,24 @@ GST applies on price only if under-construction; if ready, gstPct=0 (UI enforces
 r_m   = loanRatePct / 12 ; n = loanTenureYears * 12
 EMI   = loanAmount * r_m*(1+r_m)^n / ((1+r_m)^n - 1)      // if r_m=0 -> loanAmount/n
 ```
-Monthly schedule: `interest_m = balance*r_m`, `principal_m = EMI - interest_m`, `balance -= principal_m`. Apply `prepaymentAnnual` (and rental prepay §4.6) as extra year-end principal, then recompute remaining schedule with **EMI fixed, tenure shortened** (floating-rate behaviour). Track `interest_m, principal_m, balance_m, prepay_m`; per-year `interestPaid[t], principalPaid[t], balanceEnd[t]`. EMI stops at payoff; freed cash flows to Engine B SIP under SameCashSIP.
+Monthly schedule: `interest_m = balance*r_m`, `principal_m = EMI - interest_m`, `balance -= principal_m`. Apply `prepaymentAnnual` (and rental prepay §4.6) as extra year-end principal, then recompute remaining schedule with **EMI fixed, tenure shortened** (floating-rate behaviour). Track `interest_m, principal_m, balance_m, prepay_m`; per-year `interestPaid[t], principalPaid[t], balanceEnd[t]`. EMI stops at payoff.
+
+> **[v4 audit correction]** The original line here said "freed cash flows to Engine B SIP under SameCashSIP." That described the pre-Fix-A Engine-B design. Under Fix A (see `docs/AUDIT.md` FINDING-1), Engine B mirrors only the buyer's **net out-of-pocket** (`negCarry`), which already nets the EMI — so the EMI is **not** added to Engine B separately, and after payoff (when carry is usually positive) Engine B receives nothing further. Engine A's rental surplus stays on Engine A's side via `reinvestPot` (§4.6).
 
 ### 4.3 Rent path (this asset's realized rent)
 ```
-g_market(t) = rentGrowthY1_5 if t in 1..5 ; rentGrowthY6_10 if 6..10 ; rentGrowthY11_20 if 11..20
-drag(t)     = 0 if t<=10 ; cohortDragPct * min((t-10)/5,1) if t>10
-g_real(t)   = g_market(t) - drag(t)
-rent_annual(t) = rent_annual(t-1) * (1 + g_real(t))         // rent_annual(0) = rentPerMonth0 * 12
+g_market(y) = rentGrowthY1_5 if y in 1..5 ; rentGrowthY6_10 if 6..10 ;
+              rentGrowthY11_20 if 11..20 ; rentGrowthY21_30 if 21..30
+drag(y)     = 0 if y<=10 ; cohortDragPct * min((y-10)/5,1) if y>10
+g_real(y)   = g_market(y) - drag(y)
+
+// PER-LEASE model (authoritative — see the [v4 corrected] note below). Rent is FLAT
+// within a lease and steps once per renewal. Work in hold-MONTHS m = 1..N*12:
+rent_month(1)   = rentPerMonth0
+rent_month(m)   = rent_month(m-1) * (1 + g_real(y))   if (m-1) mod rentAgreementMonths == 0 and m>1
+                = rent_month(m-1)                      otherwise
+                  where y = ceil((m-1)/12)             // the hold-year the expiring lease ran in
+rent_annual(t)  = Σ_{k=1..12} rent_month((t-1)*12 + k) // realized annual rent for year t
 ```
 **[v3] For `PlotSelfBuild`:** rent_annual(t)=0 for t < tC (construction window); rent begins at tC. Index the rent path from completion. For `usageMode=SelfOccupied`: rent_annual is not collected; optionally credit `imputedRentBenefit` (default OFF) — if ON, treat saved rent as a non-taxable inflow equal to a market rent the investor would otherwise pay (clearly labelled, since it is a benefit not cash). **Default OFF to stay conservative and avoid overstating the property case.**
 
@@ -250,6 +260,12 @@ for t in 1..20:
    if Pocket:         reinvestPot = reinvestPot + max(postTaxRentalCF(t),0)     // cash, no growth
    negCarry(t) = max(-postTaxRentalCF(t), 0)        // shortfall from pocket; mirror to Engine B (4.9)
 ```
+> **[v4 audit] The ReinvestEquity / PrepayLoan-leftover sleeve is equity.** It compounds at
+> `equityCagr` — the *same* index as Engine B — so at exit it pays **equity LTCG** on its gain
+> (`reinvestPot − Σ contributions`) with the ₹1.25L exemption, exactly as Engine B does (§4.9).
+> This keeps the two equity pools symmetric (see `docs/AUDIT.md` F1). `Pocket` mode has no
+> growth → no sleeve gain → no tax. The tax is applied only at the terminal liquidation (§4.7);
+> the per-period `reinvestPot` is gross (unrealized), mirroring `propValueClean` being gross.
 
 ### 4.7 Exit at t=20 (property terminal net worth)
 ```
@@ -259,7 +275,8 @@ costBasis      = purchasePriceAllIn + entryCosts + totalConstructionCost(if Plot
 capGain        = exitGross - sellCosts - costBasis
 ltcg           = max(capGain,0) * ltcgPropertyPct
 netSaleProceeds= exitGross - sellCosts - ltcg - balanceEnd(20)
-RE_terminal    = netSaleProceeds + reinvestPot
+reinvestSleeveLtcg = max((reinvestPot - reinvestContrib) - equityLtcgExemptionAnnual, 0) * ltcgEquityPct   // [v4 audit] sleeve is equity
+RE_terminal    = netSaleProceeds + reinvestPot - reinvestSleeveLtcg
 ```
 > **[v3]** For `PlotSelfBuild`, `costBasis` includes the full capitalized construction cost (base + soft + contingency + interiors) and the plot price — these raise basis and reduce LTCG. `balanceEnd(20)` reflects the composite loan. Indexation is NOT available (post-2024), so basis matters only for the gain computation, not for inflation indexing.
 
@@ -487,7 +504,7 @@ equityContribThisPeriod; equityPot; cumOwnCashOutA; cumContribB; cashConservatio
 
 **T1 — EMI.** loan 10,000,000; 7.5%; 20y → EMI = **80,559.32**/mo (exact).
 **T2 — Zero-rate EMI.** loan 1,200,000; 0%; 10y → 10,000/mo exactly.
-**T3 — Rent path + drag.** rent0 30,000/mo (annual 360,000); g 7/6/5; cohort drag 2% → rent_annual(5)=**504,918.62** (=360,000×1.07⁵, 1.07⁵=1.40255173); (10)=**675,695.02** (×1.06⁵, 1.06⁵=1.33822558); (15)=**814,151.52** (×[1.046·1.042·1.038·1.034·1.030]=×1.20490976); (20)=**943,824.75** (×1.03⁵=×1.15927407). All exact. *(Originals 504,918 / 675,640 / ~815,150 / ~945,000 were hand-rounded; the year-10 rounding propagated through years 15 and 20.)*
+**T3 — Rent path + drag (per-lease, 12-month term).** rent0 30,000/mo (annual 360,000); g 7/6/5; cohort drag 2%. Under the **per-lease** model rent is FLAT within a lease and steps at each renewal, so year 1 has NO escalation: rent_annual(1)=**360,000.00**; rent_annual(5)=**471,886.56**; (10)=**637,448.13**; (15)=**790,438.37**; (20)=**916,334.70**. All exact (oracle, term=12). *(These supersede the pre-[v4] yearly-compounding values 504,918.62 / 675,695.02 / 814,151.52 / 943,824.75, which front-loaded a year-1 step; that model — and the still-earlier hand-rounded originals — are retained in `*.original.md` and `ground_truth_validation.md` for history. The change landed with the 11/12-month renewal feature; see the [v4 corrected] note.)*
 **T4 — Structure direction.** sbua 1,000; replCost0 2,300; infl 6%; phys 1.67%+econ 1.5%=3.17%; age0 0; salvage 0.10 → struct(0)=**2,300,000.00**; struct(10)=1,000×2,300×1.06¹⁰×(1−0.317)=1,000×2,300×1.79084770×0.683=**2,813,242.65** (rises early — the point of this test); struct(40): depFactor floored at 0.10; 1.06⁴⁰=10.28571794 → 1,000×2,300×10.28571794×0.10=**2,365,715.13**. All exact. *(Originals ~2,813,400 / ~2,365,700 were hand-rounded.)*
 **T5 — Land.** uds 600; landRate0 38,000; 8% (y1-10) / 6% (y11-20) → landRate(10)=38,000×1.08¹⁰ (1.08¹⁰=2.15892500)=**82,039.15** → landValue=**49,223,489.94**; landRate(20)=×1.06¹⁰ (1.06¹⁰=1.79084770)=**146,919.62** → landValue=**88,151,773.57**. All exact. *(Originals landRate(10)=82,054 / landValue 49,232,400 / 88,164,000 were hand-rounded — the slip was treating 1.08¹⁰ as ~2.1593 instead of 2.158925.)*
 **T6 — Full BLR mid-rise (v2 defaults).** [as v2; verify value-stack at t=20 sums land+structure+premium+redev ±1%, then exit waterfall and RE_terminal=netSaleProceeds+reinvestPot.]

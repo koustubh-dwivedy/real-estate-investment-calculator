@@ -55,7 +55,7 @@ describe("migration for older CSVs", () => {
     const res = parseInputsFromCsv(lines.join("\n"));
     expect("inputs" in res).toBe(true);
     if (!("inputs" in res)) return;
-    expect(res.inputs.rentAgreementMonths).toBe(12); // default restored
+    expect(res.inputs.rentAgreementMonths).toBe(11); // default restored
     expect(res.inputs.rentGrowthY21_30).toBe(res.inputs.rentGrowthY11_20);
     expect(Number.isFinite(compute(res.inputs).reTerminal)).toBe(true);
   });

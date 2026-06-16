@@ -126,7 +126,7 @@ function baseIndia(): Inputs {
     cohortDragPct: 0.02,
     vacancyPct: 0.05,
     reLetBrokerageMonths: 1,
-    rentAgreementMonths: 12, // 12 = plain annual escalation; 11 compounds faster
+    rentAgreementMonths: 11, // lease term in months; rent steps one full increment per renewal
     usageMode: "LetOut",
 
     // rent-vs-buy (renting alternative)

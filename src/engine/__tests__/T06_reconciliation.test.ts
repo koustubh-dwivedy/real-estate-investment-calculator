@@ -50,7 +50,7 @@ describe.each(Object.entries(scenarios))("Reconciliation — %s", (_name, inputs
 
   it("RE_terminal == net sale proceeds + final reinvest pot (exit waterfall)", () => {
     const finalRow = out.rows[out.rows.length - 1]!;
-    expect(out.reTerminal).toBeCloseTo(out.netSaleProceeds + finalRow.reinvestPot, 2);
+    expect(out.reTerminal).toBeCloseTo(out.netSaleProceeds + finalRow.reinvestPot - out.reinvestSleeveLtcg, 2);
   });
 
   it("headline gap == RE_terminal − EQ_terminal; real == nominal/(1+cpi)^N (T12)", () => {

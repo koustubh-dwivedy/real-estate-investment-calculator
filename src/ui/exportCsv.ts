@@ -36,7 +36,7 @@ const NON_FIELD_LABELS: Record<string, { label: string; def: string }> = {
   acquisitionType: { label: "Acquisition type", def: "Ready / under-construction flat, or plot self-build." },
   assetType: { label: "Asset type", def: "Drives UDS, depreciation, premium, maintenance treatment." },
   usageMode: { label: "Usage mode", def: "LetOut (earns rent) or SelfOccupied (carrying cost only)." },
-  rentAgreementMonths: { label: "Rent agreement (renewal cadence, months)", def: "Lease renewal cadence: escalation compounds 12/value times per year. 11 (India-typical) grows rent ~9% faster over 20y than 12; occupancy unchanged." },
+  rentAgreementMonths: { label: "Rent agreement (lease term, months)", def: "Lease term in months. Rent is flat within a term and steps by the rent-step % at each renewal; 11 (India-typical) renews sooner than 12. Occupancy unchanged." },
   rentalCashUse: { label: "Rental cash use", def: "Where surplus rent goes: ReinvestEquity / PrepayLoan / Pocket." },
   taxRegime: { label: "Tax regime", def: "India_Old allows let-out loss set-off; India_New strands it." },
   compareMode: { label: "Compare mode", def: "SameCashSIP: equity invests the buyer's full out-of-pocket cash (down-payment + annual shortfall after rent; EMI is inside the shortfall, never double-counted). LumpsumOnly: only the upfront lump(s)." },
@@ -105,6 +105,7 @@ const RESULT_ROWS: { key: keyof Outputs; label: string; pct?: boolean }[] = [
   { key: "exitGross", label: "Exit gross (after haircut)" },
   { key: "sellCosts", label: "Selling costs" },
   { key: "ltcgProperty", label: "LTCG on property" },
+  { key: "reinvestSleeveLtcg", label: "LTCG on reinvest sleeve (equity)" },
   { key: "loanPayoff", label: "Loan balance at exit" },
   { key: "netSaleProceeds", label: "Net sale proceeds" },
 ];
